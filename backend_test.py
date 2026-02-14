@@ -118,6 +118,11 @@ class StartupManagerAPITester:
 
     def test_get_current_user(self):
         """Test get current user info"""
+        # Make sure we have a token first
+        if not self.token:
+            self.log_test("Get Current User", False, "No token available - login failed")
+            return False
+            
         success, data = self.make_request('GET', '/auth/me')
         self.log_test("Get Current User", success, 
                      f"User: {data.get('name', 'Unknown')}" if success else f"Error: {data}")
