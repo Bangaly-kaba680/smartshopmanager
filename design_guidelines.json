@@ -1,0 +1,184 @@
+{
+  "design_system": {
+    "identity": {
+      "name": "StartupManager Pro",
+      "persona": "E1 - The Anti-AI Designer",
+      "tone": "Professional, Empowering, Efficient, African-Modern",
+      "language": "French (fr-FR)"
+    },
+    "typography": {
+      "font_family": {
+        "headings": "Manrope, sans-serif",
+        "body": "Public Sans, sans-serif",
+        "mono": "JetBrains Mono, monospace"
+      },
+      "import_url": "https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Public+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap",
+      "rules": {
+        "headings": "font-bold tracking-tight text-slate-900 dark:text-slate-50",
+        "subheadings": "font-medium text-slate-500 dark:text-slate-400 tracking-wide uppercase text-xs",
+        "body": "text-base leading-relaxed text-slate-600 dark:text-slate-300"
+      }
+    },
+    "colors": {
+      "palette": {
+        "primary": {
+          "name": "Indigo Trust",
+          "hex": "#4F46E5",
+          "tailwind": "indigo-600"
+        },
+        "accent": {
+          "name": "Orange Money Signal",
+          "hex": "#F97316",
+          "tailwind": "orange-500"
+        },
+        "success": {
+          "name": "Growth Green",
+          "hex": "#10B981",
+          "tailwind": "emerald-500"
+        },
+        "background": {
+          "light": "#F8FAFC",
+          "dark": "#0F172A"
+        }
+      },
+      "shadcn_variables": {
+        "light": {
+          "--background": "210 40% 98%",
+          "--foreground": "222 47% 11%",
+          "--card": "0 0% 100%",
+          "--card-foreground": "222 47% 11%",
+          "--popover": "0 0% 100%",
+          "--popover-foreground": "222 47% 11%",
+          "--primary": "243 75% 59%",
+          "--primary-foreground": "210 40% 98%",
+          "--secondary": "210 40% 96.1%",
+          "--secondary-foreground": "222 47% 11%",
+          "--muted": "210 40% 96.1%",
+          "--muted-foreground": "215.4 16.3% 46.9%",
+          "--accent": "243 75% 59%",
+          "--accent-foreground": "222 47% 11%",
+          "--destructive": "0 84.2% 60.2%",
+          "--destructive-foreground": "210 40% 98%",
+          "--border": "214.3 31.8% 91.4%",
+          "--input": "214.3 31.8% 91.4%",
+          "--ring": "243 75% 59%",
+          "--radius": "0.5rem"
+        },
+        "dark": {
+          "--background": "222 47% 11%",
+          "--foreground": "210 40% 98%",
+          "--card": "222 47% 11%",
+          "--card-foreground": "210 40% 98%",
+          "--popover": "222 47% 11%",
+          "--popover-foreground": "210 40% 98%",
+          "--primary": "243 75% 59%",
+          "--primary-foreground": "210 40% 98%",
+          "--secondary": "217.2 32.6% 17.5%",
+          "--secondary-foreground": "210 40% 98%",
+          "--muted": "217.2 32.6% 17.5%",
+          "--muted-foreground": "215 20.2% 65.1%",
+          "--accent": "217.2 32.6% 17.5%",
+          "--accent-foreground": "210 40% 98%",
+          "--destructive": "0 62.8% 30.6%",
+          "--destructive-foreground": "210 40% 98%",
+          "--border": "217.2 32.6% 17.5%",
+          "--input": "217.2 32.6% 17.5%",
+          "--ring": "243 75% 59%"
+        }
+      }
+    },
+    "layout": {
+      "spacing": {
+        "container_padding": "p-6 md:p-8 lg:p-12",
+        "section_gap": "gap-8",
+        "card_padding": "p-6"
+      },
+      "border_radius": {
+        "card": "rounded-xl",
+        "button": "rounded-lg",
+        "input": "rounded-md"
+      },
+      "shadows": {
+        "card": "shadow-sm hover:shadow-md transition-shadow duration-200",
+        "dropdown": "shadow-lg border border-slate-100 dark:border-slate-800"
+      }
+    },
+    "components": {
+      "buttons": {
+        "primary": "bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm font-medium",
+        "secondary": "bg-white text-slate-900 border border-slate-200 hover:bg-slate-50 dark:bg-slate-950 dark:text-slate-100 dark:border-slate-800 dark:hover:bg-slate-800",
+        "accent": "bg-orange-500 text-white hover:bg-orange-600 font-bold"
+      },
+      "cards": {
+        "default": "bg-card text-card-foreground rounded-xl border border-border shadow-sm",
+        "interactive": "bg-card text-card-foreground rounded-xl border border-border shadow-sm hover:border-primary/50 hover:shadow-md transition-all cursor-pointer"
+      },
+      "inputs": {
+        "default": "flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+      }
+    }
+  },
+  "assets": {
+    "images": {
+      "auth_hero": {
+        "url": "https://images.unsplash.com/photo-1604783020105-a1c1a856a55d?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2NzV8MHwxfHNlYXJjaHwxfHxhZnJpY2FuJTIwYnVzaW5lc3MlMjBvd25lciUyMHBvcnRyYWl0JTIwcHJvZmVzc2lvbmFsfGVufDB8fHx8MTc3MTA5OTc0M3ww&ixlib=rb-4.1.0&q=85",
+        "alt": "Professional African Business Owner",
+        "usage": "Right side of Login/Register page, full height, object-cover"
+      },
+      "dashboard_welcome": {
+        "url": "https://images.unsplash.com/photo-1770191954675-06f770e6cbd0?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2NzV8MHwxfHNlYXJjaHw0fHxhZnJpY2FuJTIwYnVzaW5lc3MlMjBvd25lciUyMHBvcnRyYWl0JTIwcHJvZmVzc2lvbmFsfGVufDB8fHx8MTc3MTA5OTc0M3ww&ixlib=rb-4.1.0&q=85",
+        "alt": "Smiling CEO",
+        "usage": "Small avatar or welcome banner in Dashboard"
+      },
+      "boutique_interior": {
+        "url": "https://images.unsplash.com/photo-1769107805412-90d9191d53e9?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2NzZ8MHwxfHNlYXJjaHwyfHxtb2Rlcm4lMjBjbG90aGluZyUyMGJvdXRpcXVlJTIwaW50ZXJpb3IlMjBtaW5pbWFsaXN0fGVufDB8fHx8MTc3MTA5OTc0N3ww&ixlib=rb-4.1.0&q=85",
+        "alt": "Modern Boutique Interior",
+        "usage": "Cover image for 'Boutiques' management cards"
+      },
+      "pos_placeholder": {
+        "url": "https://images.unsplash.com/photo-1766934587214-86e21b3ae093?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2NzZ8MHwxfHNlYXJjaHwzfHxtb2Rlcm4lMjBjbG90aGluZyUyMGJvdXRpcXVlJTIwaW50ZXJpb3IlMjBtaW5pbWFsaXN0fGVufDB8fHx8MTc3MTA5OTc0N3ww&ixlib=rb-4.1.0&q=85",
+        "alt": "Retail Store Context",
+        "usage": "Background or empty state for POS"
+      }
+    },
+    "icons": {
+      "library": "lucide-react",
+      "style": "Stroke width 1.5px, size 20px for UI, 24px for Nav"
+    }
+  },
+  "page_specific_guidelines": {
+    "auth": {
+      "layout": "Split Screen (50/50 on Desktop, 100% Form on Mobile)",
+      "visuals": "Left: Clean Form with Logo. Right: High-quality image with a dark overlay and a testimonial quote.",
+      "quote": "\"Gérer mes boutiques n'a jamais été aussi simple.\" - Fatou D., CEO"
+    },
+    "dashboard": {
+      "layout": "Sidebar Navigation (Collapsible on mobile). Main Content: Bento Grid.",
+      "widgets": {
+        "stats": "Simple cards with Icon + Label + Big Number + Trend Indicator (Green/Red)",
+        "charts": "Use Recharts. Minimalist lines/bars. No grid lines if possible. Tooltip on hover."
+      },
+      "sidebar": "Dark mode sidebar by default for contrast, or match theme. Let's match theme but use a subtle background color difference (e.g., bg-slate-50 in light mode for main content, white for sidebar)."
+    },
+    "pos": {
+      "layout": "Two Columns. Left (65%): Product Grid with Images. Right (35%): Cart & Checkout.",
+      "interaction": "Touch-optimized. Big buttons for 'Add to Cart'. Clear 'Pay' button in Orange.",
+      "features": "Quick search bar at top. Category filter pills."
+    },
+    "products": {
+      "layout": "Data Table with Filters. Use Shadcn Table.",
+      "actions": "Primary Action: 'Add Product' (Top Right). Bulk actions on selection."
+    },
+    "ai_features": {
+      "rh_ia": "Clean document preview area. 'Generate' button should have a subtle 'sparkle' icon or gradient border.",
+      "marketing_ia": "Split view: Input form vs. Live Preview of the ad."
+    }
+  },
+  "universal_guidelines": {
+    "language": "All text MUST be in French.",
+    "accessibility": "Ensure contrast ratios. Use aria-labels for icon-only buttons.",
+    "responsive": "Mobile-first. Stack grids on mobile. Hide non-essential columns in tables on small screens.",
+    "dark_mode": "Use 'dark:' classes for all color definitions. Test toggle frequently.",
+    "testing": "Add data-testid to all interactive elements (buttons, inputs, links)."
+  }
+}
