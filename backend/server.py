@@ -469,9 +469,8 @@ async def forgot_password(data: ForgotPassword):
     return {"message": "Si cet email existe, un lien de réinitialisation a été envoyé."}
 
 @api_router.get("/auth/me", response_model=UserResponse)
-async def get_me(authorization: str = None):
-    from fastapi import Header
-    # Get token from header manually
+async def get_me(authorization: str = Header(None)):
+    # Get token from header
     if not authorization:
         raise HTTPException(status_code=401, detail="Token manquant")
     user = get_current_user(authorization)
