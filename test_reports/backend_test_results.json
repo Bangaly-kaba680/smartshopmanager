@@ -1,32 +1,176 @@
 {
-  "timestamp": "2026-02-14T20:24:43.091864",
-  "total_tests": 4,
-  "passed_tests": 3,
-  "success_rate": 75.0,
+  "timestamp": "2026-02-14T20:26:55.797847",
+  "total_tests": 28,
+  "passed_tests": 22,
+  "success_rate": 78.57142857142857,
   "results": [
     {
       "test": "Root API Endpoint",
       "success": true,
       "details": "Response: StartupManager Pro API",
-      "timestamp": "2026-02-14T20:24:42.433257"
+      "timestamp": "2026-02-14T20:25:41.030720"
     },
     {
       "test": "Demo Account Login",
       "success": true,
       "details": "User: Admin CEO, Role: ceo",
-      "timestamp": "2026-02-14T20:24:42.797649"
+      "timestamp": "2026-02-14T20:25:41.435258"
     },
     {
       "test": "Get Current User",
-      "success": false,
-      "details": "Error: {'detail': 'Token manquant'}",
-      "timestamp": "2026-02-14T20:24:42.929071"
+      "success": true,
+      "details": "User: Admin CEO",
+      "timestamp": "2026-02-14T20:25:41.577544"
     },
     {
       "test": "Dashboard Stats",
       "success": true,
       "details": "Sales: 0, Revenue: 0, Shops: 1",
-      "timestamp": "2026-02-14T20:24:43.090695"
+      "timestamp": "2026-02-14T20:25:41.709211"
+    },
+    {
+      "test": "User Registration",
+      "success": true,
+      "details": "New user created: Test User 202541",
+      "timestamp": "2026-02-14T20:25:42.054310"
+    },
+    {
+      "test": "Get Products",
+      "success": true,
+      "details": "Found 8 products",
+      "timestamp": "2026-02-14T20:25:42.173103"
+    },
+    {
+      "test": "Create Product",
+      "success": true,
+      "details": "Product ID: f252b9ca-88a8-4347-b4a1-e8d79c78c8ca",
+      "timestamp": "2026-02-14T20:25:42.333201"
+    },
+    {
+      "test": "Update Product",
+      "success": true,
+      "details": "Updated name: Updated Test Product",
+      "timestamp": "2026-02-14T20:25:42.503677"
+    },
+    {
+      "test": "Delete Product",
+      "success": true,
+      "details": "Product deleted successfully",
+      "timestamp": "2026-02-14T20:25:43.552578"
+    },
+    {
+      "test": "Create Batch",
+      "success": true,
+      "details": "Batch ID: 99844c2d-ac39-4576-8170-f783b587ff28",
+      "timestamp": "2026-02-14T20:25:43.890067"
+    },
+    {
+      "test": "Generate QR Code",
+      "success": true,
+      "details": "QR code generated",
+      "timestamp": "2026-02-14T20:25:44.035863"
+    },
+    {
+      "test": "Get Batches",
+      "success": true,
+      "details": "Found 9 batches",
+      "timestamp": "2026-02-14T20:25:44.163477"
+    },
+    {
+      "test": "Get Employees",
+      "success": true,
+      "details": "Found 4 employees",
+      "timestamp": "2026-02-14T20:25:44.406595"
+    },
+    {
+      "test": "Create Employee",
+      "success": true,
+      "details": "Employee ID: f9421c44-ffe9-4e51-934b-d65e5482a568",
+      "timestamp": "2026-02-14T20:25:44.512783"
+    },
+    {
+      "test": "Update Employee",
+      "success": true,
+      "details": "Updated salary: 250000.0",
+      "timestamp": "2026-02-14T20:25:44.639009"
+    },
+    {
+      "test": "Create Sale",
+      "success": true,
+      "details": "Sale ID: 9427f194-512e-46f3-b412-c21cf61a79f8, Total: 30000.0",
+      "timestamp": "2026-02-14T20:25:44.908841"
+    },
+    {
+      "test": "Get Sales",
+      "success": true,
+      "details": "Found 1 sales",
+      "timestamp": "2026-02-14T20:25:45.023768"
+    },
+    {
+      "test": "Get Accounts",
+      "success": true,
+      "details": "Found 3 accounts",
+      "timestamp": "2026-02-14T20:25:45.149796"
+    },
+    {
+      "test": "Account Balances",
+      "success": true,
+      "details": "Total balance: 3780000.0 FCFA",
+      "timestamp": "2026-02-14T20:25:45.149834"
+    },
+    {
+      "test": "AI Contract Generation",
+      "success": false,
+      "details": "Error: {'error': \"HTTPSConnectionPool(host='shopflow-208.preview.emergentagent.com', port=443): Read timed out. (read timeout=10)\"}",
+      "timestamp": "2026-02-14T20:25:55.355758"
+    },
+    {
+      "test": "AI Work Attestation",
+      "success": false,
+      "details": "Error: {'error': \"HTTPSConnectionPool(host='shopflow-208.preview.emergentagent.com', port=443): Read timed out. (read timeout=10)\"}",
+      "timestamp": "2026-02-14T20:26:05.427275"
+    },
+    {
+      "test": "AI Product Ad Generation",
+      "success": false,
+      "details": "Error: {'error': \"HTTPSConnectionPool(host='shopflow-208.preview.emergentagent.com', port=443): Read timed out. (read timeout=10)\"}",
+      "timestamp": "2026-02-14T20:26:15.500046"
+    },
+    {
+      "test": "AI Job Offer Generation",
+      "success": false,
+      "details": "Error: {'error': \"HTTPSConnectionPool(host='shopflow-208.preview.emergentagent.com', port=443): Read timed out. (read timeout=10)\"}",
+      "timestamp": "2026-02-14T20:26:25.636231"
+    },
+    {
+      "test": "AI Help Assistant",
+      "success": false,
+      "details": "Error: {'error': \"HTTPSConnectionPool(host='shopflow-208.preview.emergentagent.com', port=443): Read timed out. (read timeout=10)\"}",
+      "timestamp": "2026-02-14T20:26:35.704941"
+    },
+    {
+      "test": "Orange Money Payment",
+      "success": false,
+      "details": "Error: {'error': \"HTTPSConnectionPool(host='shopflow-208.preview.emergentagent.com', port=443): Read timed out. (read timeout=10)\"}",
+      "timestamp": "2026-02-14T20:26:45.779754"
+    },
+    {
+      "test": "Card Payment",
+      "success": true,
+      "details": "Transaction ID: CARD-1EB4D13B",
+      "timestamp": "2026-02-14T20:26:55.437792"
+    },
+    {
+      "test": "WhatsApp Receipt",
+      "success": true,
+      "details": "WhatsApp receipt sent",
+      "timestamp": "2026-02-14T20:26:55.684771"
+    },
+    {
+      "test": "SMS Receipt",
+      "success": true,
+      "details": "SMS receipt sent",
+      "timestamp": "2026-02-14T20:26:55.797535"
     }
   ]
 }
