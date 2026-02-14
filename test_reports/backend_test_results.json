@@ -1,0 +1,32 @@
+{
+  "timestamp": "2026-02-14T20:24:43.091864",
+  "total_tests": 4,
+  "passed_tests": 3,
+  "success_rate": 75.0,
+  "results": [
+    {
+      "test": "Root API Endpoint",
+      "success": true,
+      "details": "Response: StartupManager Pro API",
+      "timestamp": "2026-02-14T20:24:42.433257"
+    },
+    {
+      "test": "Demo Account Login",
+      "success": true,
+      "details": "User: Admin CEO, Role: ceo",
+      "timestamp": "2026-02-14T20:24:42.797649"
+    },
+    {
+      "test": "Get Current User",
+      "success": false,
+      "details": "Error: {'detail': 'Token manquant'}",
+      "timestamp": "2026-02-14T20:24:42.929071"
+    },
+    {
+      "test": "Dashboard Stats",
+      "success": true,
+      "details": "Sales: 0, Revenue: 0, Shops: 1",
+      "timestamp": "2026-02-14T20:24:43.090695"
+    }
+  ]
+}
