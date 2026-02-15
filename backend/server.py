@@ -1,11 +1,11 @@
-from fastapi import FastAPI, APIRouter, Depends, HTTPException, status, UploadFile, File, Header
+from fastapi import FastAPI, APIRouter, HTTPException, status
 from fastapi.responses import StreamingResponse, HTMLResponse
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 import os
 import logging
 from pathlib import Path
-from pydantic import BaseModel, Field, ConfigDict, EmailStr
+from pydantic import BaseModel, EmailStr
 from typing import List, Optional
 import uuid
 from datetime import datetime, timezone, timedelta
@@ -20,6 +20,7 @@ from reportlab.lib.units import cm
 from emergentintegrations.llm.chat import LlmChat, UserMessage
 import asyncio
 import resend
+from database import get_database, get_collection, init_indexes
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -43,22 +44,187 @@ app = FastAPI(title="StartupManager Pro API")
 # Create a router with the /api prefix
 api_router = APIRouter(prefix="/api")
 
-# ========================
-# IN-MEMORY DATABASE (PostgreSQL simulation with dictionaries)
-# ========================
-# Using in-memory storage for demo - in production, use actual PostgreSQL
+# Admin email for access control
+ADMIN_EMAIL = "bangalykaba635@gmail.com"
 
-db_users = {}
-db_shops = {}
-db_products = {}
-db_batches = {}
-db_sales = {}
-db_sale_items = {}
-db_employees = {}
-db_documents = {}
-db_accounts = {}
+# ========================
+# MONGODB COLLECTIONS
+# ========================
+def users_col():
+    return get_collection('users')
 
-# Email notification function
+def shops_col():
+    return get_collection('shops')
+
+def products_col():
+    return get_collection('products')
+
+def batches_col():
+    return get_collection('batches')
+
+def sales_col():
+    return get_collection('sales')
+
+def sale_items_col():
+    return get_collection('sale_items')
+
+def employees_col():
+    return get_collection('employees')
+
+def documents_col():
+    return get_collection('documents')
+
+def accounts_col():
+    return get_collection('accounts')
+
+def access_requests_col():
+    return get_collection('access_requests')
+
+def authorized_users_col():
+    return get_collection('authorized_users')
+
+def payments_col():
+    return get_collection('payments')
+
+def whatsapp_messages_col():
+    return get_collection('whatsapp_messages')
+
+# ========================
+# HELPER FUNCTIONS
+# ========================
+def serialize_doc(doc):
+    """Convert MongoDB document to JSON-serializable dict"""
+    if doc is None:
+        return None
+    doc = dict(doc)
+    if '_id' in doc:
+        del doc['_id']
+    return doc
+
+def serialize_docs(docs):
+    """Convert list of MongoDB documents"""
+    return [serialize_doc(doc) for doc in docs]
+
+# ========================
+# INITIALIZE DEMO DATA
+# ========================
+def init_demo_data():
+    """Initialize demo data if database is empty"""
+    db = get_database()
+    
+    # Check if already initialized
+    if users_col().count_documents({}) > 0:
+        logging.info("Database already initialized with demo data")
+        return
+    
+    logging.info("Initializing demo data...")
+    
+    # Create demo CEO user
+    demo_user_id = str(uuid.uuid4())
+    demo_shop_id = str(uuid.uuid4())
+    
+    users_col().insert_one({
+        "id": demo_user_id,
+        "name": "Admin CEO",
+        "email": "admin@startup.com",
+        "password": pwd_context.hash("admin123"),
+        "role": "ceo",
+        "shop_id": demo_shop_id,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    })
+    
+    # Create demo shop
+    shops_col().insert_one({
+        "id": demo_shop_id,
+        "name": "Boutique Principale",
+        "address": "123 Rue Commerce, Dakar",
+        "phone": "+221 77 123 4567",
+        "orange_money_number": "+221 77 999 8888",
+        "bank_account": "SN001234567890"
+    })
+    
+    # Create demo accounts for the shop
+    for acc_type in ["cash", "orange_money", "bank"]:
+        acc_id = str(uuid.uuid4())
+        accounts_col().insert_one({
+            "id": acc_id,
+            "shop_id": demo_shop_id,
+            "type": acc_type,
+            "balance": 500000 if acc_type == "cash" else (750000 if acc_type == "orange_money" else 2500000)
+        })
+    
+    # Create demo products
+    products_data = [
+        ("T-Shirt Premium", "Vêtements", 15000),
+        ("Jean Slim", "Vêtements", 25000),
+        ("Robe Élégante", "Vêtements", 35000),
+        ("Sneakers Sport", "Chaussures", 45000),
+        ("Sandales Cuir", "Chaussures", 20000),
+        ("Sac à Main", "Accessoires", 30000),
+        ("Ceinture Cuir", "Accessoires", 12000),
+        ("Montre Classic", "Accessoires", 55000),
+    ]
+    
+    for name, category, price in products_data:
+        prod_id = str(uuid.uuid4())
+        products_col().insert_one({
+            "id": prod_id,
+            "shop_id": demo_shop_id,
+            "name": name,
+            "category": category,
+            "price": price,
+            "description": f"Description de {name}",
+            "image_url": None,
+            "created_at": datetime.now(timezone.utc).isoformat()
+        })
+        
+        # Create demo batch for each product
+        batch_id = str(uuid.uuid4())
+        batches_col().insert_one({
+            "id": batch_id,
+            "product_id": prod_id,
+            "lot_number": f"LOT-{datetime.now().strftime('%Y%m%d')}-{str(uuid.uuid4())[:4].upper()}",
+            "size": "M",
+            "color": "Noir",
+            "quantity": 50,
+            "qr_code": None,
+            "created_at": datetime.now(timezone.utc).isoformat()
+        })
+    
+    # Create demo employees
+    employees_data = [
+        ("Fatou Diallo", "Manager", 450000, "CDI"),
+        ("Moussa Ndiaye", "Caissier", 200000, "CDI"),
+        ("Aminata Fall", "Stock Manager", 250000, "CDD"),
+        ("Ibrahima Sow", "Vendeur", 180000, "Stage"),
+    ]
+    
+    for name, position, salary, contract_type in employees_data:
+        emp_id = str(uuid.uuid4())
+        employees_col().insert_one({
+            "id": emp_id,
+            "shop_id": demo_shop_id,
+            "name": name,
+            "position": position,
+            "salary": salary,
+            "contract_type": contract_type
+        })
+    
+    # Auto-authorize the demo admin account
+    authorized_users_col().insert_one({
+        "id": str(uuid.uuid4()),
+        "name": "Admin CEO",
+        "email": "admin@startup.com",
+        "access_type": "permanent",
+        "expires_at": None,
+        "approved_at": datetime.now(timezone.utc).isoformat()
+    })
+    
+    logging.info("Demo data initialized successfully!")
+
+# ========================
+# EMAIL NOTIFICATION FUNCTION
+# ========================
 async def send_access_notification_email(request_name: str, request_email: str, request_reason: str, request_id: str):
     """Send email notification to admin when someone requests access"""
     try:
@@ -169,7 +335,6 @@ async def send_access_notification_email(request_name: str, request_email: str, 
             "html": html_content
         }
         
-        # Run sync SDK in thread to keep FastAPI non-blocking
         email_result = await asyncio.to_thread(resend.Emails.send, params)
         logging.info(f"Access notification email sent: {email_result}")
         return True
@@ -178,321 +343,31 @@ async def send_access_notification_email(request_name: str, request_email: str, 
         logging.error(f"Failed to send access notification email: {str(e)}")
         return False
 
-# Initialize with demo data
-def init_demo_data():
-    # Create demo CEO user
-    demo_user_id = str(uuid.uuid4())
-    db_users[demo_user_id] = {
-        "id": demo_user_id,
-        "name": "Admin CEO",
-        "email": "admin@startup.com",
-        "password": pwd_context.hash("admin123"),
-        "role": "ceo",
-        "shop_id": None,
-        "created_at": datetime.now(timezone.utc).isoformat()
-    }
-    
-    # Create demo shop
-    demo_shop_id = str(uuid.uuid4())
-    db_shops[demo_shop_id] = {
-        "id": demo_shop_id,
-        "name": "Boutique Principale",
-        "address": "123 Rue Commerce, Dakar",
-        "phone": "+221 77 123 4567",
-        "orange_money_number": "+221 77 999 8888",
-        "bank_account": "SN001234567890"
-    }
-    
-    # Update CEO with shop
-    db_users[demo_user_id]["shop_id"] = demo_shop_id
-    
-    # Create demo accounts for the shop
-    for acc_type in ["cash", "orange_money", "bank"]:
-        acc_id = str(uuid.uuid4())
-        db_accounts[acc_id] = {
-            "id": acc_id,
-            "shop_id": demo_shop_id,
-            "type": acc_type,
-            "balance": 500000 if acc_type == "cash" else (750000 if acc_type == "orange_money" else 2500000)
-        }
-    
-    # Create demo products
-    categories = ["Vêtements", "Chaussures", "Accessoires"]
-    products_data = [
-        ("T-Shirt Premium", "Vêtements", 15000),
-        ("Jean Slim", "Vêtements", 25000),
-        ("Robe Élégante", "Vêtements", 35000),
-        ("Sneakers Sport", "Chaussures", 45000),
-        ("Sandales Cuir", "Chaussures", 20000),
-        ("Sac à Main", "Accessoires", 30000),
-        ("Ceinture Cuir", "Accessoires", 12000),
-        ("Montre Classic", "Accessoires", 55000),
-    ]
-    
-    for name, category, price in products_data:
-        prod_id = str(uuid.uuid4())
-        db_products[prod_id] = {
-            "id": prod_id,
-            "shop_id": demo_shop_id,
-            "name": name,
-            "category": category,
-            "price": price,
-            "description": f"Description de {name}",
-            "created_at": datetime.now(timezone.utc).isoformat()
-        }
+# ========================
+# AI CONTENT GENERATION
+# ========================
+async def generate_ai_content(prompt: str, system_message: str = "Tu es un assistant professionnel pour la gestion d'entreprise.") -> str:
+    try:
+        api_key = os.environ.get('EMERGENT_LLM_KEY')
+        if not api_key:
+            return "Clé API non configurée. Contenu de démonstration généré."
         
-        # Create demo batch for each product
-        batch_id = str(uuid.uuid4())
-        db_batches[batch_id] = {
-            "id": batch_id,
-            "product_id": prod_id,
-            "lot_number": f"LOT-{datetime.now().strftime('%Y%m%d')}-{str(uuid.uuid4())[:4].upper()}",
-            "size": "M",
-            "color": "Noir",
-            "quantity": 50,
-            "qr_code": None,
-            "created_at": datetime.now(timezone.utc).isoformat()
-        }
-    
-    # Create demo employees
-    employees_data = [
-        ("Fatou Diallo", "Manager", 450000, "CDI"),
-        ("Moussa Ndiaye", "Caissier", 200000, "CDI"),
-        ("Aminata Fall", "Stock Manager", 250000, "CDD"),
-        ("Ibrahima Sow", "Vendeur", 180000, "Stage"),
-    ]
-    
-    for name, position, salary, contract_type in employees_data:
-        emp_id = str(uuid.uuid4())
-        db_employees[emp_id] = {
-            "id": emp_id,
-            "shop_id": demo_shop_id,
-            "name": name,
-            "position": position,
-            "salary": salary,
-            "contract_type": contract_type
-        }
-
-init_demo_data()
+        chat = LlmChat(
+            api_key=api_key,
+            session_id=str(uuid.uuid4()),
+            system_message=system_message
+        ).with_model("openai", "gpt-5.2")
+        
+        user_message = UserMessage(text=prompt)
+        response = await chat.send_message(user_message)
+        return response
+    except Exception as e:
+        logging.error(f"AI Generation Error: {e}")
+        return f"Erreur de génération IA. Contenu par défaut fourni."
 
 # ========================
-# PYDANTIC MODELS
+# RESULT PAGE FOR EMAIL ACTIONS
 # ========================
-
-# Access Control System
-db_access_requests = {}  # Pending access requests
-db_authorized_users = {}  # Authorized users
-ADMIN_EMAIL = "bangalykaba635@gmail.com"
-
-# Access Request Models
-class AccessRequest(BaseModel):
-    name: str
-    email: EmailStr
-    reason: Optional[str] = None
-
-class AccessRequestResponse(BaseModel):
-    id: str
-    name: str
-    email: str
-    reason: Optional[str] = None
-    status: str  # pending, approved, denied
-    access_type: Optional[str] = None  # permanent, temporary
-    expires_at: Optional[str] = None
-    created_at: str
-
-class ApproveAccess(BaseModel):
-    access_type: str  # permanent, temporary
-
-# ========================
-# ACCESS CONTROL ROUTES
-# ========================
-
-@api_router.post("/access/request")
-async def request_access(request: AccessRequest):
-    """Request access to the application"""
-    # Admin always has access
-    if request.email.lower() == ADMIN_EMAIL.lower():
-        return {"status": "already_authorized", "message": "Accès admin automatique"}
-    
-    # Check if already authorized
-    for auth in db_authorized_users.values():
-        if auth["email"] == request.email:
-            if auth["access_type"] == "permanent" or \
-               (auth["expires_at"] and datetime.fromisoformat(auth["expires_at"]) > datetime.now(timezone.utc)):
-                return {"status": "already_authorized", "message": "Vous avez déjà accès à l'application"}
-    
-    # Check if request already pending
-    for req in db_access_requests.values():
-        if req["email"] == request.email and req["status"] == "pending":
-            return {"status": "pending", "message": "Votre demande est en cours de traitement"}
-    
-    request_id = str(uuid.uuid4())
-    db_access_requests[request_id] = {
-        "id": request_id,
-        "name": request.name,
-        "email": request.email,
-        "reason": request.reason,
-        "status": "pending",
-        "access_type": None,
-        "expires_at": None,
-        "created_at": datetime.now(timezone.utc).isoformat()
-    }
-    
-    # Send email notification to admin
-    await send_access_notification_email(
-        request_name=request.name,
-        request_email=request.email,
-        request_reason=request.reason or "",
-        request_id=request_id
-    )
-    
-    return {
-        "status": "submitted",
-        "message": "Demande envoyée! Bangaly Kaba va examiner votre demande.",
-        "request_id": request_id
-    }
-
-@api_router.get("/access/check/{email}")
-async def check_access(email: str):
-    """Check if an email has access"""
-    # Admin always has access
-    if email.lower() == ADMIN_EMAIL.lower():
-        return {"authorized": True, "access_type": "permanent", "is_admin": True}
-    
-    for auth in db_authorized_users.values():
-        if auth["email"] == email:
-            if auth["access_type"] == "permanent":
-                return {"authorized": True, "access_type": "permanent"}
-            elif auth["expires_at"]:
-                expires = datetime.fromisoformat(auth["expires_at"])
-                if expires > datetime.now(timezone.utc):
-                    remaining = (expires - datetime.now(timezone.utc)).total_seconds()
-                    return {
-                        "authorized": True, 
-                        "access_type": "temporary",
-                        "remaining_seconds": int(remaining)
-                    }
-                else:
-                    # Access expired, remove it
-                    del db_authorized_users[auth["id"]]
-                    return {"authorized": False, "message": "Accès expiré"}
-    
-    # Check pending requests
-    for req in db_access_requests.values():
-        if req["email"] == email and req["status"] == "pending":
-            return {"authorized": False, "status": "pending"}
-    
-    return {"authorized": False}
-
-@api_router.get("/access/requests")
-async def get_access_requests():
-    """Get all access requests (Admin only)"""
-    return list(db_access_requests.values())
-
-@api_router.get("/access/authorized")
-async def get_authorized_users():
-    """Get all authorized users (Admin only)"""
-    # Clean expired temporary accesses
-    expired = []
-    for auth_id, auth in db_authorized_users.items():
-        if auth["access_type"] == "temporary" and auth["expires_at"]:
-            if datetime.fromisoformat(auth["expires_at"]) < datetime.now(timezone.utc):
-                expired.append(auth_id)
-    for auth_id in expired:
-        del db_authorized_users[auth_id]
-    
-    return list(db_authorized_users.values())
-
-@api_router.put("/access/approve/{request_id}")
-async def approve_access(request_id: str, approval: ApproveAccess):
-    """Approve an access request (Admin only)"""
-    if request_id not in db_access_requests:
-        raise HTTPException(status_code=404, detail="Demande non trouvée")
-    
-    request = db_access_requests[request_id]
-    request["status"] = "approved"
-    request["access_type"] = approval.access_type
-    
-    if approval.access_type == "temporary":
-        expires = datetime.now(timezone.utc) + timedelta(minutes=20)
-        request["expires_at"] = expires.isoformat()
-    
-    # Add to authorized users
-    auth_id = str(uuid.uuid4())
-    db_authorized_users[auth_id] = {
-        "id": auth_id,
-        "name": request["name"],
-        "email": request["email"],
-        "access_type": approval.access_type,
-        "expires_at": request.get("expires_at"),
-        "approved_at": datetime.now(timezone.utc).isoformat()
-    }
-    
-    return {"status": "approved", "message": f"Accès {approval.access_type} accordé"}
-
-@api_router.put("/access/deny/{request_id}")
-async def deny_access(request_id: str):
-    """Deny an access request (Admin only)"""
-    if request_id not in db_access_requests:
-        raise HTTPException(status_code=404, detail="Demande non trouvée")
-    
-    db_access_requests[request_id]["status"] = "denied"
-    return {"status": "denied", "message": "Accès refusé"}
-
-# Quick action endpoints for email links (GET requests)
-@api_router.get("/access/quick-approve/{request_id}/{access_type}")
-async def quick_approve_access(request_id: str, access_type: str):
-    """Quick approve from email link - returns HTML page"""
-    if request_id not in db_access_requests:
-        return HTMLResponse(content=get_result_page("error", "Demande non trouvée ou déjà traitée"), status_code=404)
-    
-    request = db_access_requests[request_id]
-    
-    if request["status"] != "pending":
-        return HTMLResponse(content=get_result_page("info", f"Cette demande a déjà été traitée ({request['status']})"))
-    
-    request["status"] = "approved"
-    request["access_type"] = access_type
-    
-    if access_type == "temporary":
-        expires = datetime.now(timezone.utc) + timedelta(minutes=20)
-        request["expires_at"] = expires.isoformat()
-    
-    # Add to authorized users
-    auth_id = str(uuid.uuid4())
-    db_authorized_users[auth_id] = {
-        "id": auth_id,
-        "name": request["name"],
-        "email": request["email"],
-        "access_type": access_type,
-        "expires_at": request.get("expires_at"),
-        "approved_at": datetime.now(timezone.utc).isoformat()
-    }
-    
-    access_label = "PERMANENT" if access_type == "permanent" else "20 MINUTES"
-    return HTMLResponse(content=get_result_page(
-        "success", 
-        f"Accès {access_label} accordé à {request['name']} ({request['email']})"
-    ))
-
-@api_router.get("/access/quick-deny/{request_id}")
-async def quick_deny_access(request_id: str):
-    """Quick deny from email link - returns HTML page"""
-    if request_id not in db_access_requests:
-        return HTMLResponse(content=get_result_page("error", "Demande non trouvée ou déjà traitée"), status_code=404)
-    
-    request = db_access_requests[request_id]
-    
-    if request["status"] != "pending":
-        return HTMLResponse(content=get_result_page("info", f"Cette demande a déjà été traitée ({request['status']})"))
-    
-    request["status"] = "denied"
-    
-    return HTMLResponse(content=get_result_page(
-        "denied", 
-        f"Accès REFUSÉ à {request['name']} ({request['email']})"
-    ))
-
 def get_result_page(status: str, message: str) -> str:
     """Generate HTML result page for quick actions"""
     colors = {
@@ -594,28 +469,18 @@ def get_result_page(status: str, message: str) -> str:
     </html>
     """
 
-@api_router.delete("/access/revoke/{email}")
-async def revoke_access(email: str):
-    """Revoke access for a user (Admin only)"""
-    revoked = False
-    to_delete = []
-    for auth_id, auth in db_authorized_users.items():
-        if auth["email"] == email:
-            to_delete.append(auth_id)
-            revoked = True
-    
-    for auth_id in to_delete:
-        del db_authorized_users[auth_id]
-    
-    if revoked:
-        return {"status": "revoked", "message": "Accès révoqué"}
-    raise HTTPException(status_code=404, detail="Utilisateur non trouvé")
+# ========================
+# PYDANTIC MODELS
+# ========================
 
-@api_router.get("/access/pending-count")
-async def get_pending_count():
-    """Get count of pending requests"""
-    count = sum(1 for req in db_access_requests.values() if req["status"] == "pending")
-    return {"count": count}
+# Access Request Models
+class AccessRequest(BaseModel):
+    name: str
+    email: EmailStr
+    reason: Optional[str] = None
+
+class ApproveAccess(BaseModel):
+    access_type: str
 
 # Auth Models
 class UserRegister(BaseModel):
@@ -665,6 +530,7 @@ class ProductCreate(BaseModel):
     category: str
     price: float
     description: Optional[str] = None
+    image_url: Optional[str] = None
 
 class ProductResponse(BaseModel):
     id: str
@@ -673,6 +539,7 @@ class ProductResponse(BaseModel):
     category: str
     price: float
     description: Optional[str] = None
+    image_url: Optional[str] = None
     created_at: str
     stock_quantity: int = 0
 
@@ -681,6 +548,7 @@ class ProductUpdate(BaseModel):
     category: Optional[str] = None
     price: Optional[float] = None
     description: Optional[str] = None
+    image_url: Optional[str] = None
 
 # Batch/Stock Models
 class BatchCreate(BaseModel):
@@ -714,7 +582,7 @@ class SaleItemCreate(BaseModel):
 
 class SaleCreate(BaseModel):
     items: List[SaleItemCreate]
-    payment_method: str  # cash, orange_money, card
+    payment_method: str
     customer_phone: Optional[str] = None
 
 class SaleResponse(BaseModel):
@@ -732,7 +600,7 @@ class EmployeeCreate(BaseModel):
     name: str
     position: str
     salary: float
-    contract_type: str  # CDI, CDD, Stage
+    contract_type: str
 
 class EmployeeResponse(BaseModel):
     id: str
@@ -751,7 +619,7 @@ class EmployeeUpdate(BaseModel):
 # Document Models
 class DocumentCreate(BaseModel):
     employee_id: str
-    type: str  # contrat, attestation_travail, attestation_stage
+    type: str
 
 class DocumentResponse(BaseModel):
     id: str
@@ -774,7 +642,7 @@ class AIContractRequest(BaseModel):
     employee_id: str
 
 class AIMarketingRequest(BaseModel):
-    type: str  # job_offer, product_ad
+    type: str
     title: str
     description: str
     price: Optional[float] = None
@@ -782,25 +650,26 @@ class AIMarketingRequest(BaseModel):
 class AIHelpRequest(BaseModel):
     question: str
 
-# Payment Models (Mock)
+# Payment Models
 class PaymentInitiate(BaseModel):
     amount: float
     phone: Optional[str] = None
+    sale_id: Optional[str] = None
 
 class PaymentResponse(BaseModel):
     status: str
     transaction_id: str
     message: str
+    details: Optional[dict] = None
 
-# WhatsApp Models (Mock)
+# WhatsApp Models
 class WhatsAppReceipt(BaseModel):
     phone: str
     sale_id: str
 
 # ========================
-# AUTH HELPERS
+# JWT FUNCTIONS
 # ========================
-
 def create_access_token(data: dict):
     to_encode = data.copy()
     expire = datetime.now(timezone.utc) + timedelta(hours=JWT_EXPIRATION_HOURS)
@@ -816,52 +685,218 @@ def verify_token(token: str):
     except jwt.InvalidTokenError:
         raise HTTPException(status_code=401, detail="Token invalide")
 
-def get_current_user(authorization: str = None):
-    if not authorization or not authorization.startswith("Bearer "):
-        raise HTTPException(status_code=401, detail="Token manquant")
-    token = authorization.replace("Bearer ", "")
-    payload = verify_token(token)
-    user_id = payload.get("user_id")
-    if user_id not in db_users:
-        raise HTTPException(status_code=401, detail="Utilisateur non trouvé")
-    return db_users[user_id]
-
 # ========================
-# QR CODE HELPER
+# ACCESS CONTROL ROUTES
 # ========================
 
-def generate_qr_code(data: str) -> str:
-    qr = qrcode.QRCode(version=1, box_size=10, border=5)
-    qr.add_data(data)
-    qr.make(fit=True)
-    img = qr.make_image(fill_color="black", back_color="white")
-    buffer = BytesIO()
-    img.save(buffer, format="PNG")
-    buffer.seek(0)
-    return base64.b64encode(buffer.getvalue()).decode()
+@api_router.post("/access/request")
+async def request_access(request: AccessRequest):
+    """Request access to the application"""
+    if request.email.lower() == ADMIN_EMAIL.lower():
+        return {"status": "already_authorized", "message": "Accès admin automatique"}
+    
+    # Check if already authorized
+    auth = authorized_users_col().find_one({"email": request.email})
+    if auth:
+        auth = serialize_doc(auth)
+        if auth["access_type"] == "permanent" or \
+           (auth.get("expires_at") and datetime.fromisoformat(auth["expires_at"]) > datetime.now(timezone.utc)):
+            return {"status": "already_authorized", "message": "Vous avez déjà accès à l'application"}
+    
+    # Check if request already pending
+    pending = access_requests_col().find_one({"email": request.email, "status": "pending"})
+    if pending:
+        return {"status": "pending", "message": "Votre demande est en cours de traitement"}
+    
+    request_id = str(uuid.uuid4())
+    access_requests_col().insert_one({
+        "id": request_id,
+        "name": request.name,
+        "email": request.email,
+        "reason": request.reason,
+        "status": "pending",
+        "access_type": None,
+        "expires_at": None,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    })
+    
+    await send_access_notification_email(
+        request_name=request.name,
+        request_email=request.email,
+        request_reason=request.reason or "",
+        request_id=request_id
+    )
+    
+    return {
+        "status": "submitted",
+        "message": "Demande envoyée! Bangaly Kaba va examiner votre demande.",
+        "request_id": request_id
+    }
 
-# ========================
-# AI HELPER
-# ========================
+@api_router.get("/access/check/{email}")
+async def check_access(email: str):
+    """Check if an email has access"""
+    if email.lower() == ADMIN_EMAIL.lower():
+        return {"authorized": True, "access_type": "permanent", "is_admin": True}
+    
+    auth = authorized_users_col().find_one({"email": email})
+    if auth:
+        auth = serialize_doc(auth)
+        if auth["access_type"] == "permanent":
+            return {"authorized": True, "access_type": "permanent"}
+        elif auth.get("expires_at"):
+            expires = datetime.fromisoformat(auth["expires_at"])
+            if expires > datetime.now(timezone.utc):
+                remaining = (expires - datetime.now(timezone.utc)).total_seconds()
+                return {
+                    "authorized": True, 
+                    "access_type": "temporary",
+                    "remaining_seconds": int(remaining)
+                }
+            else:
+                authorized_users_col().delete_one({"id": auth["id"]})
+                return {"authorized": False, "message": "Accès expiré"}
+    
+    pending = access_requests_col().find_one({"email": email, "status": "pending"})
+    if pending:
+        return {"authorized": False, "status": "pending"}
+    
+    return {"authorized": False}
 
-async def generate_ai_content(prompt: str, system_message: str = "Tu es un assistant professionnel pour la gestion d'entreprise.") -> str:
-    try:
-        api_key = os.environ.get('EMERGENT_LLM_KEY')
-        if not api_key:
-            return "Clé API non configurée. Contenu de démonstration généré."
-        
-        chat = LlmChat(
-            api_key=api_key,
-            session_id=str(uuid.uuid4()),
-            system_message=system_message
-        ).with_model("openai", "gpt-5.2")
-        
-        user_message = UserMessage(text=prompt)
-        response = await chat.send_message(user_message)
-        return response
-    except Exception as e:
-        logging.error(f"AI Generation Error: {e}")
-        return f"Erreur de génération IA. Contenu par défaut fourni."
+@api_router.get("/access/requests")
+async def get_access_requests():
+    """Get all access requests (Admin only)"""
+    requests = list(access_requests_col().find())
+    return serialize_docs(requests)
+
+@api_router.get("/access/authorized")
+async def get_authorized_users():
+    """Get all authorized users (Admin only)"""
+    # Clean expired temporary accesses
+    now = datetime.now(timezone.utc).isoformat()
+    authorized_users_col().delete_many({
+        "access_type": "temporary",
+        "expires_at": {"$lt": now}
+    })
+    
+    users = list(authorized_users_col().find())
+    return serialize_docs(users)
+
+@api_router.put("/access/approve/{request_id}")
+async def approve_access(request_id: str, approval: ApproveAccess):
+    """Approve an access request (Admin only)"""
+    request = access_requests_col().find_one({"id": request_id})
+    if not request:
+        raise HTTPException(status_code=404, detail="Demande non trouvée")
+    
+    request = serialize_doc(request)
+    expires_at = None
+    if approval.access_type == "temporary":
+        expires_at = (datetime.now(timezone.utc) + timedelta(minutes=20)).isoformat()
+    
+    access_requests_col().update_one(
+        {"id": request_id},
+        {"$set": {
+            "status": "approved",
+            "access_type": approval.access_type,
+            "expires_at": expires_at
+        }}
+    )
+    
+    auth_id = str(uuid.uuid4())
+    authorized_users_col().insert_one({
+        "id": auth_id,
+        "name": request["name"],
+        "email": request["email"],
+        "access_type": approval.access_type,
+        "expires_at": expires_at,
+        "approved_at": datetime.now(timezone.utc).isoformat()
+    })
+    
+    return {"status": "approved", "message": f"Accès {approval.access_type} accordé"}
+
+@api_router.put("/access/deny/{request_id}")
+async def deny_access(request_id: str):
+    """Deny an access request (Admin only)"""
+    result = access_requests_col().update_one(
+        {"id": request_id},
+        {"$set": {"status": "denied"}}
+    )
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Demande non trouvée")
+    return {"status": "denied", "message": "Accès refusé"}
+
+@api_router.get("/access/quick-approve/{request_id}/{access_type}")
+async def quick_approve_access(request_id: str, access_type: str):
+    """Quick approve from email link - returns HTML page"""
+    request = access_requests_col().find_one({"id": request_id})
+    if not request:
+        return HTMLResponse(content=get_result_page("error", "Demande non trouvée ou déjà traitée"), status_code=404)
+    
+    request = serialize_doc(request)
+    if request["status"] != "pending":
+        return HTMLResponse(content=get_result_page("info", f"Cette demande a déjà été traitée ({request['status']})"))
+    
+    expires_at = None
+    if access_type == "temporary":
+        expires_at = (datetime.now(timezone.utc) + timedelta(minutes=20)).isoformat()
+    
+    access_requests_col().update_one(
+        {"id": request_id},
+        {"$set": {
+            "status": "approved",
+            "access_type": access_type,
+            "expires_at": expires_at
+        }}
+    )
+    
+    auth_id = str(uuid.uuid4())
+    authorized_users_col().insert_one({
+        "id": auth_id,
+        "name": request["name"],
+        "email": request["email"],
+        "access_type": access_type,
+        "expires_at": expires_at,
+        "approved_at": datetime.now(timezone.utc).isoformat()
+    })
+    
+    access_label = "PERMANENT" if access_type == "permanent" else "20 MINUTES"
+    return HTMLResponse(content=get_result_page(
+        "success", 
+        f"Accès {access_label} accordé à {request['name']} ({request['email']})"
+    ))
+
+@api_router.get("/access/quick-deny/{request_id}")
+async def quick_deny_access(request_id: str):
+    """Quick deny from email link - returns HTML page"""
+    request = access_requests_col().find_one({"id": request_id})
+    if not request:
+        return HTMLResponse(content=get_result_page("error", "Demande non trouvée ou déjà traitée"), status_code=404)
+    
+    request = serialize_doc(request)
+    if request["status"] != "pending":
+        return HTMLResponse(content=get_result_page("info", f"Cette demande a déjà été traitée ({request['status']})"))
+    
+    access_requests_col().update_one({"id": request_id}, {"$set": {"status": "denied"}})
+    
+    return HTMLResponse(content=get_result_page(
+        "denied", 
+        f"Accès REFUSÉ à {request['name']} ({request['email']})"
+    ))
+
+@api_router.delete("/access/revoke/{email}")
+async def revoke_access(email: str):
+    """Revoke access for a user (Admin only)"""
+    result = authorized_users_col().delete_many({"email": email})
+    if result.deleted_count > 0:
+        return {"status": "revoked", "message": "Accès révoqué"}
+    raise HTTPException(status_code=404, detail="Utilisateur non trouvé")
+
+@api_router.get("/access/pending-count")
+async def get_pending_count():
+    """Get count of pending requests"""
+    count = access_requests_col().count_documents({"status": "pending"})
+    return {"count": count}
 
 # ========================
 # AUTH ROUTES
@@ -869,18 +904,17 @@ async def generate_ai_content(prompt: str, system_message: str = "Tu es un assis
 
 @api_router.post("/auth/register", response_model=TokenResponse)
 async def register(user: UserRegister):
-    # Check if email exists
-    for u in db_users.values():
-        if u["email"] == user.email:
-            raise HTTPException(status_code=400, detail="Email déjà utilisé")
+    existing = users_col().find_one({"email": user.email})
+    if existing:
+        raise HTTPException(status_code=400, detail="Email déjà utilisé")
     
     user_id = str(uuid.uuid4())
     hashed_password = pwd_context.hash(user.password)
     
-    # Get first shop for demo
-    shop_id = list(db_shops.keys())[0] if db_shops else None
+    shop = shops_col().find_one()
+    shop_id = serialize_doc(shop)["id"] if shop else None
     
-    db_users[user_id] = {
+    users_col().insert_one({
         "id": user_id,
         "name": user.name,
         "email": user.email,
@@ -888,7 +922,7 @@ async def register(user: UserRegister):
         "role": user.role,
         "shop_id": shop_id,
         "created_at": datetime.now(timezone.utc).isoformat()
-    }
+    })
     
     token = create_access_token({"user_id": user_id, "role": user.role})
     
@@ -905,13 +939,12 @@ async def register(user: UserRegister):
 
 @api_router.post("/auth/login", response_model=TokenResponse)
 async def login(credentials: UserLogin):
-    user = None
-    for u in db_users.values():
-        if u["email"] == credentials.email:
-            user = u
-            break
+    user = users_col().find_one({"email": credentials.email})
+    if not user:
+        raise HTTPException(status_code=401, detail="Email ou mot de passe incorrect")
     
-    if not user or not pwd_context.verify(credentials.password, user["password"]):
+    user = serialize_doc(user)
+    if not pwd_context.verify(credentials.password, user["password"]):
         raise HTTPException(status_code=401, detail="Email ou mot de passe incorrect")
     
     token = create_access_token({"user_id": user["id"], "role": user["role"]})
@@ -929,22 +962,8 @@ async def login(credentials: UserLogin):
 
 @api_router.post("/auth/forgot-password")
 async def forgot_password(data: ForgotPassword):
-    # Mock implementation - in production, send email
+    user = users_col().find_one({"email": data.email})
     return {"message": "Si cet email existe, un lien de réinitialisation a été envoyé."}
-
-@api_router.get("/auth/me", response_model=UserResponse)
-async def get_me(authorization: str = Header(None)):
-    # Get token from header
-    if not authorization:
-        raise HTTPException(status_code=401, detail="Token manquant")
-    user = get_current_user(authorization)
-    return UserResponse(
-        id=user["id"],
-        name=user["name"],
-        email=user["email"],
-        role=user["role"],
-        shop_id=user.get("shop_id")
-    )
 
 # ========================
 # SHOPS ROUTES
@@ -952,83 +971,103 @@ async def get_me(authorization: str = Header(None)):
 
 @api_router.get("/shops", response_model=List[ShopResponse])
 async def get_shops():
-    return [ShopResponse(**shop) for shop in db_shops.values()]
+    shops = list(shops_col().find())
+    return [ShopResponse(**serialize_doc(s)) for s in shops]
 
 @api_router.post("/shops", response_model=ShopResponse)
 async def create_shop(shop: ShopCreate):
     shop_id = str(uuid.uuid4())
-    db_shops[shop_id] = {
+    shop_data = {
         "id": shop_id,
         **shop.model_dump()
     }
+    shops_col().insert_one(shop_data)
     
     # Create accounts for the new shop
     for acc_type in ["cash", "orange_money", "bank"]:
-        acc_id = str(uuid.uuid4())
-        db_accounts[acc_id] = {
-            "id": acc_id,
+        accounts_col().insert_one({
+            "id": str(uuid.uuid4()),
             "shop_id": shop_id,
             "type": acc_type,
             "balance": 0
-        }
+        })
     
-    return ShopResponse(**db_shops[shop_id])
+    return ShopResponse(**shop_data)
 
 @api_router.get("/shops/{shop_id}", response_model=ShopResponse)
 async def get_shop(shop_id: str):
-    if shop_id not in db_shops:
+    shop = shops_col().find_one({"id": shop_id})
+    if not shop:
         raise HTTPException(status_code=404, detail="Boutique non trouvée")
-    return ShopResponse(**db_shops[shop_id])
+    return ShopResponse(**serialize_doc(shop))
 
 # ========================
 # PRODUCTS ROUTES
 # ========================
 
 @api_router.get("/products", response_model=List[ProductResponse])
-async def get_products(shop_id: Optional[str] = None):
-    products = []
-    for prod in db_products.values():
-        if shop_id and prod["shop_id"] != shop_id:
-            continue
-        # Calculate stock quantity
-        stock_qty = sum(b["quantity"] for b in db_batches.values() if b["product_id"] == prod["id"])
-        products.append(ProductResponse(**prod, stock_quantity=stock_qty))
-    return products
+async def get_products(shop_id: Optional[str] = None, category: Optional[str] = None):
+    query = {}
+    if shop_id:
+        query["shop_id"] = shop_id
+    if category:
+        query["category"] = category
+    
+    products = list(products_col().find(query))
+    result = []
+    for prod in products:
+        prod = serialize_doc(prod)
+        stock = sum(b["quantity"] for b in batches_col().find({"product_id": prod["id"]}))
+        result.append(ProductResponse(**prod, stock_quantity=stock))
+    return result
 
 @api_router.post("/products", response_model=ProductResponse)
 async def create_product(product: ProductCreate):
     prod_id = str(uuid.uuid4())
-    shop_id = list(db_shops.keys())[0] if db_shops else None
+    shop = shops_col().find_one()
+    shop_id = serialize_doc(shop)["id"] if shop else None
     
-    db_products[prod_id] = {
+    prod_data = {
         "id": prod_id,
         "shop_id": shop_id,
         **product.model_dump(),
         "created_at": datetime.now(timezone.utc).isoformat()
     }
-    return ProductResponse(**db_products[prod_id], stock_quantity=0)
+    products_col().insert_one(prod_data)
+    
+    return ProductResponse(**prod_data, stock_quantity=0)
 
-@api_router.put("/products/{product_id}", response_model=ProductResponse)
-async def update_product(product_id: str, product: ProductUpdate):
-    if product_id not in db_products:
+@api_router.get("/products/{product_id}", response_model=ProductResponse)
+async def get_product(product_id: str):
+    product = products_col().find_one({"id": product_id})
+    if not product:
         raise HTTPException(status_code=404, detail="Produit non trouvé")
     
-    for key, value in product.model_dump(exclude_unset=True).items():
-        if value is not None:
-            db_products[product_id][key] = value
+    product = serialize_doc(product)
+    stock = sum(b["quantity"] for b in batches_col().find({"product_id": product_id}))
+    return ProductResponse(**product, stock_quantity=stock)
+
+@api_router.put("/products/{product_id}", response_model=ProductResponse)
+async def update_product(product_id: str, update: ProductUpdate):
+    product = products_col().find_one({"id": product_id})
+    if not product:
+        raise HTTPException(status_code=404, detail="Produit non trouvé")
     
-    stock_qty = sum(b["quantity"] for b in db_batches.values() if b["product_id"] == product_id)
-    return ProductResponse(**db_products[product_id], stock_quantity=stock_qty)
+    update_data = {k: v for k, v in update.model_dump().items() if v is not None}
+    if update_data:
+        products_col().update_one({"id": product_id}, {"$set": update_data})
+    
+    updated = products_col().find_one({"id": product_id})
+    updated = serialize_doc(updated)
+    stock = sum(b["quantity"] for b in batches_col().find({"product_id": product_id}))
+    return ProductResponse(**updated, stock_quantity=stock)
 
 @api_router.delete("/products/{product_id}")
 async def delete_product(product_id: str):
-    if product_id not in db_products:
+    result = products_col().delete_one({"id": product_id})
+    if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Produit non trouvé")
-    del db_products[product_id]
-    # Delete related batches
-    batches_to_delete = [bid for bid, b in db_batches.items() if b["product_id"] == product_id]
-    for bid in batches_to_delete:
-        del db_batches[bid]
+    batches_col().delete_many({"product_id": product_id})
     return {"message": "Produit supprimé"}
 
 # ========================
@@ -1037,23 +1076,29 @@ async def delete_product(product_id: str):
 
 @api_router.get("/batches", response_model=List[BatchResponse])
 async def get_batches(product_id: Optional[str] = None):
-    batches = []
-    for batch in db_batches.values():
-        if product_id and batch["product_id"] != product_id:
-            continue
-        product_name = db_products.get(batch["product_id"], {}).get("name", "Inconnu")
-        batches.append(BatchResponse(**batch, product_name=product_name))
-    return batches
+    query = {}
+    if product_id:
+        query["product_id"] = product_id
+    
+    batches = list(batches_col().find(query))
+    result = []
+    for batch in batches:
+        batch = serialize_doc(batch)
+        product = products_col().find_one({"id": batch["product_id"]})
+        product_name = serialize_doc(product)["name"] if product else "Inconnu"
+        result.append(BatchResponse(**batch, product_name=product_name))
+    return result
 
 @api_router.post("/batches", response_model=BatchResponse)
 async def create_batch(batch: BatchCreate):
-    if batch.product_id not in db_products:
+    product = products_col().find_one({"id": batch.product_id})
+    if not product:
         raise HTTPException(status_code=404, detail="Produit non trouvé")
     
     batch_id = str(uuid.uuid4())
     lot_number = batch.lot_number or f"LOT-{datetime.now().strftime('%Y%m%d')}-{str(uuid.uuid4())[:4].upper()}"
     
-    db_batches[batch_id] = {
+    batch_data = {
         "id": batch_id,
         "product_id": batch.product_id,
         "lot_number": lot_number,
@@ -1063,43 +1108,59 @@ async def create_batch(batch: BatchCreate):
         "qr_code": None,
         "created_at": datetime.now(timezone.utc).isoformat()
     }
+    batches_col().insert_one(batch_data)
     
-    product_name = db_products.get(batch.product_id, {}).get("name", "Inconnu")
-    return BatchResponse(**db_batches[batch_id], product_name=product_name)
+    product = serialize_doc(product)
+    return BatchResponse(**batch_data, product_name=product["name"])
 
 @api_router.put("/batches/{batch_id}", response_model=BatchResponse)
-async def update_batch(batch_id: str, batch: BatchUpdate):
-    if batch_id not in db_batches:
+async def update_batch(batch_id: str, update: BatchUpdate):
+    batch = batches_col().find_one({"id": batch_id})
+    if not batch:
         raise HTTPException(status_code=404, detail="Lot non trouvé")
     
-    for key, value in batch.model_dump(exclude_unset=True).items():
-        if value is not None:
-            db_batches[batch_id][key] = value
+    update_data = {k: v for k, v in update.model_dump().items() if v is not None}
+    if update_data:
+        batches_col().update_one({"id": batch_id}, {"$set": update_data})
     
-    product_name = db_products.get(db_batches[batch_id]["product_id"], {}).get("name", "Inconnu")
-    return BatchResponse(**db_batches[batch_id], product_name=product_name)
+    updated = batches_col().find_one({"id": batch_id})
+    updated = serialize_doc(updated)
+    product = products_col().find_one({"id": updated["product_id"]})
+    product_name = serialize_doc(product)["name"] if product else "Inconnu"
+    return BatchResponse(**updated, product_name=product_name)
 
 @api_router.delete("/batches/{batch_id}")
 async def delete_batch(batch_id: str):
-    if batch_id not in db_batches:
+    result = batches_col().delete_one({"id": batch_id})
+    if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Lot non trouvé")
-    del db_batches[batch_id]
     return {"message": "Lot supprimé"}
 
-@api_router.post("/batches/{batch_id}/generate-qr")
-async def generate_batch_qr(batch_id: str):
-    if batch_id not in db_batches:
+@api_router.get("/batches/{batch_id}/qr")
+async def generate_qr_code(batch_id: str):
+    batch = batches_col().find_one({"id": batch_id})
+    if not batch:
         raise HTTPException(status_code=404, detail="Lot non trouvé")
     
-    batch = db_batches[batch_id]
-    product = db_products.get(batch["product_id"], {})
+    batch = serialize_doc(batch)
+    product = products_col().find_one({"id": batch["product_id"]})
+    product_name = serialize_doc(product)["name"] if product else "Produit"
     
-    qr_data = f"PRODUCT:{product.get('name', 'N/A')}|LOT:{batch['lot_number']}|SIZE:{batch['size']}|COLOR:{batch['color']}"
-    qr_code = generate_qr_code(qr_data)
+    qr_data = f"StartupManager|{batch['lot_number']}|{product_name}|{batch['size']}|{batch['color']}"
     
-    db_batches[batch_id]["qr_code"] = qr_code
+    qr = qrcode.QRCode(version=1, box_size=10, border=5)
+    qr.add_data(qr_data)
+    qr.make(fit=True)
     
-    return {"qr_code": qr_code, "batch_id": batch_id}
+    img = qr.make_image(fill_color="black", back_color="white")
+    buffer = BytesIO()
+    img.save(buffer, format='PNG')
+    buffer.seek(0)
+    
+    qr_base64 = base64.b64encode(buffer.getvalue()).decode()
+    batches_col().update_one({"id": batch_id}, {"$set": {"qr_code": qr_base64}})
+    
+    return {"qr_code": qr_base64, "lot_number": batch["lot_number"]}
 
 # ========================
 # SALES ROUTES
@@ -1107,23 +1168,61 @@ async def generate_batch_qr(batch_id: str):
 
 @api_router.get("/sales", response_model=List[SaleResponse])
 async def get_sales(shop_id: Optional[str] = None):
-    sales = []
-    for sale in db_sales.values():
-        if shop_id and sale["shop_id"] != shop_id:
-            continue
-        items = [item for item in db_sale_items.values() if item["sale_id"] == sale["id"]]
-        sales.append(SaleResponse(**sale, items=items))
-    return sorted(sales, key=lambda x: x.created_at, reverse=True)
+    query = {}
+    if shop_id:
+        query["shop_id"] = shop_id
+    
+    sales = list(sales_col().find(query).sort("created_at", -1))
+    result = []
+    for sale in sales:
+        sale = serialize_doc(sale)
+        items = list(sale_items_col().find({"sale_id": sale["id"]}))
+        sale["items"] = serialize_docs(items)
+        result.append(SaleResponse(**sale))
+    return result
 
 @api_router.post("/sales", response_model=SaleResponse)
 async def create_sale(sale: SaleCreate):
     sale_id = str(uuid.uuid4())
-    shop_id = list(db_shops.keys())[0] if db_shops else None
-    user_id = list(db_users.keys())[0] if db_users else None
+    shop = shops_col().find_one()
+    shop_id = serialize_doc(shop)["id"] if shop else None
+    user = users_col().find_one()
+    user_id = serialize_doc(user)["id"] if user else "unknown"
     
-    total = sum(item.price * item.quantity for item in sale.items)
+    total = 0
+    sale_items = []
     
-    db_sales[sale_id] = {
+    for item in sale.items:
+        product = products_col().find_one({"id": item.product_id})
+        if not product:
+            raise HTTPException(status_code=404, detail=f"Produit {item.product_id} non trouvé")
+        
+        product = serialize_doc(product)
+        item_total = item.quantity * item.price
+        total += item_total
+        
+        item_id = str(uuid.uuid4())
+        sale_item = {
+            "id": item_id,
+            "sale_id": sale_id,
+            "product_id": item.product_id,
+            "product_name": product["name"],
+            "quantity": item.quantity,
+            "price": item.price,
+            "total": item_total
+        }
+        sale_items_col().insert_one(sale_item)
+        sale_items.append(sale_item)
+        
+        # Update stock
+        batch = batches_col().find_one({"product_id": item.product_id, "quantity": {"$gte": item.quantity}})
+        if batch:
+            batches_col().update_one(
+                {"id": batch["id"]},
+                {"$inc": {"quantity": -item.quantity}}
+            )
+    
+    sale_data = {
         "id": sale_id,
         "shop_id": shop_id,
         "user_id": user_id,
@@ -1132,52 +1231,17 @@ async def create_sale(sale: SaleCreate):
         "customer_phone": sale.customer_phone,
         "created_at": datetime.now(timezone.utc).isoformat()
     }
-    
-    items = []
-    for item in sale.items:
-        item_id = str(uuid.uuid4())
-        product = db_products.get(item.product_id, {})
-        db_sale_items[item_id] = {
-            "id": item_id,
-            "sale_id": sale_id,
-            "product_id": item.product_id,
-            "product_name": product.get("name", "Inconnu"),
-            "quantity": item.quantity,
-            "price": item.price
-        }
-        items.append(db_sale_items[item_id])
-        
-        # Update stock (reduce quantity from batches)
-        remaining_qty = item.quantity
-        for batch in db_batches.values():
-            if batch["product_id"] == item.product_id and remaining_qty > 0:
-                reduce_by = min(batch["quantity"], remaining_qty)
-                batch["quantity"] -= reduce_by
-                remaining_qty -= reduce_by
+    sales_col().insert_one(sale_data)
     
     # Update account balance
-    for acc in db_accounts.values():
-        if acc["shop_id"] == shop_id:
-            if (sale.payment_method == "cash" and acc["type"] == "cash") or \
-               (sale.payment_method == "orange_money" and acc["type"] == "orange_money") or \
-               (sale.payment_method == "card" and acc["type"] == "bank"):
-                acc["balance"] += total
-                break
+    acc_type_map = {"cash": "cash", "orange_money": "orange_money", "card": "bank"}
+    acc_type = acc_type_map.get(sale.payment_method, "cash")
+    accounts_col().update_one(
+        {"shop_id": shop_id, "type": acc_type},
+        {"$inc": {"balance": total}}
+    )
     
-    return SaleResponse(**db_sales[sale_id], items=items)
-
-@api_router.delete("/sales/{sale_id}")
-async def delete_sale(sale_id: str):
-    if sale_id not in db_sales:
-        raise HTTPException(status_code=404, detail="Vente non trouvée")
-    
-    # Remove sale items
-    items_to_delete = [iid for iid, item in db_sale_items.items() if item["sale_id"] == sale_id]
-    for iid in items_to_delete:
-        del db_sale_items[iid]
-    
-    del db_sales[sale_id]
-    return {"message": "Vente supprimée"}
+    return SaleResponse(**sale_data, items=serialize_docs(sale_items))
 
 # ========================
 # EMPLOYEES ROUTES
@@ -1185,54 +1249,68 @@ async def delete_sale(sale_id: str):
 
 @api_router.get("/employees", response_model=List[EmployeeResponse])
 async def get_employees(shop_id: Optional[str] = None):
-    employees = []
-    for emp in db_employees.values():
-        if shop_id and emp["shop_id"] != shop_id:
-            continue
-        employees.append(EmployeeResponse(**emp))
-    return employees
+    query = {}
+    if shop_id:
+        query["shop_id"] = shop_id
+    
+    employees = list(employees_col().find(query))
+    return [EmployeeResponse(**serialize_doc(e)) for e in employees]
 
 @api_router.post("/employees", response_model=EmployeeResponse)
 async def create_employee(employee: EmployeeCreate):
     emp_id = str(uuid.uuid4())
-    shop_id = list(db_shops.keys())[0] if db_shops else None
+    shop = shops_col().find_one()
+    shop_id = serialize_doc(shop)["id"] if shop else None
     
-    db_employees[emp_id] = {
+    emp_data = {
         "id": emp_id,
         "shop_id": shop_id,
         **employee.model_dump()
     }
-    return EmployeeResponse(**db_employees[emp_id])
+    employees_col().insert_one(emp_data)
+    
+    return EmployeeResponse(**emp_data)
+
+@api_router.get("/employees/{employee_id}", response_model=EmployeeResponse)
+async def get_employee(employee_id: str):
+    employee = employees_col().find_one({"id": employee_id})
+    if not employee:
+        raise HTTPException(status_code=404, detail="Employé non trouvé")
+    return EmployeeResponse(**serialize_doc(employee))
 
 @api_router.put("/employees/{employee_id}", response_model=EmployeeResponse)
-async def update_employee(employee_id: str, employee: EmployeeUpdate):
-    if employee_id not in db_employees:
+async def update_employee(employee_id: str, update: EmployeeUpdate):
+    employee = employees_col().find_one({"id": employee_id})
+    if not employee:
         raise HTTPException(status_code=404, detail="Employé non trouvé")
     
-    for key, value in employee.model_dump(exclude_unset=True).items():
-        if value is not None:
-            db_employees[employee_id][key] = value
+    update_data = {k: v for k, v in update.model_dump().items() if v is not None}
+    if update_data:
+        employees_col().update_one({"id": employee_id}, {"$set": update_data})
     
-    return EmployeeResponse(**db_employees[employee_id])
+    updated = employees_col().find_one({"id": employee_id})
+    return EmployeeResponse(**serialize_doc(updated))
 
 @api_router.delete("/employees/{employee_id}")
 async def delete_employee(employee_id: str):
-    if employee_id not in db_employees:
+    result = employees_col().delete_one({"id": employee_id})
+    if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Employé non trouvé")
-    del db_employees[employee_id]
     return {"message": "Employé supprimé"}
 
 # ========================
-# AI DOCUMENTS ROUTES
+# AI HR ROUTES
 # ========================
 
 @api_router.post("/ai/contract")
 async def generate_contract(request: AIContractRequest):
-    if request.employee_id not in db_employees:
+    employee = employees_col().find_one({"id": request.employee_id})
+    if not employee:
         raise HTTPException(status_code=404, detail="Employé non trouvé")
     
-    employee = db_employees[request.employee_id]
-    shop = db_shops.get(employee["shop_id"], {})
+    employee = serialize_doc(employee)
+    shop = shops_col().find_one({"id": employee.get("shop_id")})
+    shop = serialize_doc(shop) if shop else {}
     
     prompt = f"""Génère un contrat de travail professionnel en français pour:
     - Employé: {employee['name']}
@@ -1247,7 +1325,7 @@ async def generate_contract(request: AIContractRequest):
     content = await generate_ai_content(prompt, "Tu es un expert en droit du travail sénégalais. Génère des documents juridiques professionnels en français.")
     
     doc_id = str(uuid.uuid4())
-    db_documents[doc_id] = {
+    doc_data = {
         "id": doc_id,
         "employee_id": request.employee_id,
         "type": "contrat",
@@ -1255,16 +1333,19 @@ async def generate_contract(request: AIContractRequest):
         "signed": False,
         "created_at": datetime.now(timezone.utc).isoformat()
     }
+    documents_col().insert_one(doc_data)
     
-    return DocumentResponse(**db_documents[doc_id], employee_name=employee["name"])
+    return DocumentResponse(**doc_data, employee_name=employee["name"])
 
 @api_router.post("/ai/attestation-work")
 async def generate_work_attestation(request: AIContractRequest):
-    if request.employee_id not in db_employees:
+    employee = employees_col().find_one({"id": request.employee_id})
+    if not employee:
         raise HTTPException(status_code=404, detail="Employé non trouvé")
     
-    employee = db_employees[request.employee_id]
-    shop = db_shops.get(employee["shop_id"], {})
+    employee = serialize_doc(employee)
+    shop = shops_col().find_one({"id": employee.get("shop_id")})
+    shop = serialize_doc(shop) if shop else {}
     
     prompt = f"""Génère une attestation de travail professionnelle en français pour:
     - Employé: {employee['name']}
@@ -1277,7 +1358,7 @@ async def generate_work_attestation(request: AIContractRequest):
     content = await generate_ai_content(prompt, "Tu es un responsable RH. Génère des attestations professionnelles en français.")
     
     doc_id = str(uuid.uuid4())
-    db_documents[doc_id] = {
+    doc_data = {
         "id": doc_id,
         "employee_id": request.employee_id,
         "type": "attestation_travail",
@@ -1285,16 +1366,19 @@ async def generate_work_attestation(request: AIContractRequest):
         "signed": False,
         "created_at": datetime.now(timezone.utc).isoformat()
     }
+    documents_col().insert_one(doc_data)
     
-    return DocumentResponse(**db_documents[doc_id], employee_name=employee["name"])
+    return DocumentResponse(**doc_data, employee_name=employee["name"])
 
 @api_router.post("/ai/attestation-stage")
 async def generate_internship_attestation(request: AIContractRequest):
-    if request.employee_id not in db_employees:
+    employee = employees_col().find_one({"id": request.employee_id})
+    if not employee:
         raise HTTPException(status_code=404, detail="Employé non trouvé")
     
-    employee = db_employees[request.employee_id]
-    shop = db_shops.get(employee["shop_id"], {})
+    employee = serialize_doc(employee)
+    shop = shops_col().find_one({"id": employee.get("shop_id")})
+    shop = serialize_doc(shop) if shop else {}
     
     prompt = f"""Génère une attestation de stage professionnelle en français pour:
     - Stagiaire: {employee['name']}
@@ -1307,7 +1391,7 @@ async def generate_internship_attestation(request: AIContractRequest):
     content = await generate_ai_content(prompt, "Tu es un responsable RH. Génère des attestations de stage professionnelles en français.")
     
     doc_id = str(uuid.uuid4())
-    db_documents[doc_id] = {
+    doc_data = {
         "id": doc_id,
         "employee_id": request.employee_id,
         "type": "attestation_stage",
@@ -1315,43 +1399,54 @@ async def generate_internship_attestation(request: AIContractRequest):
         "signed": False,
         "created_at": datetime.now(timezone.utc).isoformat()
     }
+    documents_col().insert_one(doc_data)
     
-    return DocumentResponse(**db_documents[doc_id], employee_name=employee["name"])
+    return DocumentResponse(**doc_data, employee_name=employee["name"])
 
 @api_router.get("/documents", response_model=List[DocumentResponse])
 async def get_documents(employee_id: Optional[str] = None):
-    documents = []
-    for doc in db_documents.values():
-        if employee_id and doc["employee_id"] != employee_id:
-            continue
-        employee_name = db_employees.get(doc["employee_id"], {}).get("name", "Inconnu")
-        documents.append(DocumentResponse(**doc, employee_name=employee_name))
-    return sorted(documents, key=lambda x: x.created_at, reverse=True)
+    query = {}
+    if employee_id:
+        query["employee_id"] = employee_id
+    
+    documents = list(documents_col().find(query).sort("created_at", -1))
+    result = []
+    for doc in documents:
+        doc = serialize_doc(doc)
+        employee = employees_col().find_one({"id": doc["employee_id"]})
+        employee_name = serialize_doc(employee)["name"] if employee else "Inconnu"
+        result.append(DocumentResponse(**doc, employee_name=employee_name))
+    return result
 
 @api_router.put("/documents/{document_id}/sign")
 async def sign_document(document_id: str):
-    if document_id not in db_documents:
+    document = documents_col().find_one({"id": document_id})
+    if not document:
         raise HTTPException(status_code=404, detail="Document non trouvé")
     
-    db_documents[document_id]["signed"] = True
-    employee_name = db_employees.get(db_documents[document_id]["employee_id"], {}).get("name", "Inconnu")
+    documents_col().update_one({"id": document_id}, {"$set": {"signed": True}})
     
-    return DocumentResponse(**db_documents[document_id], employee_name=employee_name)
+    updated = documents_col().find_one({"id": document_id})
+    updated = serialize_doc(updated)
+    employee = employees_col().find_one({"id": updated["employee_id"]})
+    employee_name = serialize_doc(employee)["name"] if employee else "Inconnu"
+    
+    return DocumentResponse(**updated, employee_name=employee_name)
 
 @api_router.get("/documents/{document_id}/pdf")
 async def download_document_pdf(document_id: str):
-    if document_id not in db_documents:
+    document = documents_col().find_one({"id": document_id})
+    if not document:
         raise HTTPException(status_code=404, detail="Document non trouvé")
     
-    doc = db_documents[document_id]
-    employee = db_employees.get(doc["employee_id"], {})
+    doc = serialize_doc(document)
+    employee = employees_col().find_one({"id": doc["employee_id"]})
+    employee = serialize_doc(employee) if employee else {}
     
-    # Generate PDF
     buffer = BytesIO()
     p = canvas.Canvas(buffer, pagesize=A4)
     width, height = A4
     
-    # Header
     p.setFont("Helvetica-Bold", 16)
     p.drawString(2*cm, height - 2*cm, "StartupManager Pro")
     
@@ -1360,7 +1455,6 @@ async def download_document_pdf(document_id: str):
     p.drawString(2*cm, height - 3.5*cm, f"Employé: {employee.get('name', 'N/A')}")
     p.drawString(2*cm, height - 4*cm, f"Date: {doc['created_at'][:10]}")
     
-    # Content
     p.setFont("Helvetica", 10)
     y = height - 5.5*cm
     content_lines = doc["content"].split('\n')
@@ -1368,7 +1462,6 @@ async def download_document_pdf(document_id: str):
         if y < 3*cm:
             p.showPage()
             y = height - 2*cm
-        # Wrap long lines
         words = line.split()
         current_line = ""
         for word in words:
@@ -1382,7 +1475,6 @@ async def download_document_pdf(document_id: str):
             p.drawString(2*cm, y, current_line)
             y -= 0.5*cm
     
-    # Signature
     if doc["signed"]:
         p.setFont("Helvetica-Bold", 12)
         p.drawString(2*cm, 3*cm, "✓ Document signé électroniquement")
@@ -1467,23 +1559,21 @@ async def ai_help_assistant(request: AIHelpRequest):
 @api_router.get("/ai/insights/dashboard")
 async def get_ai_dashboard_insights():
     """Generate AI insights for dashboard"""
-    # Gather data
-    total_sales = len(db_sales)
-    total_products = len(db_products)
-    total_employees = len(db_employees)
+    total_sales = sales_col().count_documents({})
+    total_products = products_col().count_documents({})
+    total_employees = employees_col().count_documents({})
     
     low_stock_products = []
-    for prod_id, prod in db_products.items():
-        stock = sum(b["quantity"] for b in db_batches.values() if b["product_id"] == prod_id)
+    for prod in products_col().find():
+        prod = serialize_doc(prod)
+        stock = sum(b["quantity"] for b in batches_col().find({"product_id": prod["id"]}))
         if stock < 10:
             low_stock_products.append({"name": prod["name"], "stock": stock})
     
-    total_revenue = sum(s["total"] for s in db_sales.values())
+    total_revenue = sum(s["total"] for s in sales_col().find())
     
-    # Generate insights
     insights = []
     
-    # Stock alerts
     if low_stock_products:
         products_list = ", ".join([p["name"] for p in low_stock_products[:3]])
         insights.append({
@@ -1494,7 +1584,6 @@ async def get_ai_dashboard_insights():
             "action": "Réapprovisionner"
         })
     
-    # Sales performance
     if total_sales > 0:
         avg_sale = total_revenue / total_sales
         insights.append({
@@ -1505,7 +1594,6 @@ async def get_ai_dashboard_insights():
             "action": None
         })
     
-    # AI recommendation
     if total_products < 10:
         insights.append({
             "type": "tip",
@@ -1541,190 +1629,297 @@ async def get_ai_stock_insights():
     insights = []
     recommendations = []
     
-    for prod_id, prod in db_products.items():
-        stock = sum(b["quantity"] for b in db_batches.values() if b["product_id"] == prod_id)
+    for prod in products_col().find():
+        prod = serialize_doc(prod)
+        stock = sum(b["quantity"] for b in batches_col().find({"product_id": prod["id"]}))
         
         if stock == 0:
             insights.append({
                 "type": "critical",
                 "product": prod["name"],
-                "message": "Rupture de stock!",
-                "recommendation": "Commander immédiatement"
+                "message": "Stock épuisé - réapprovisionnement urgent"
             })
         elif stock < 5:
             insights.append({
-                "type": "warning", 
+                "type": "warning",
                 "product": prod["name"],
-                "message": f"Stock très faible ({stock} unités)",
-                "recommendation": "Réapprovisionner sous 48h"
+                "message": f"Stock très faible ({stock} unités)"
             })
-        elif stock < 15:
-            insights.append({
-                "type": "info",
+        elif stock < 10:
+            recommendations.append({
                 "product": prod["name"],
-                "message": f"Stock à surveiller ({stock} unités)",
-                "recommendation": "Planifier réapprovisionnement"
+                "current_stock": stock,
+                "suggestion": "Commander bientôt"
             })
     
     return {
         "insights": insights,
+        "recommendations": recommendations,
         "generated_at": datetime.now(timezone.utc).isoformat()
     }
 
 @api_router.get("/ai/insights/sales")
 async def get_ai_sales_insights():
     """Generate AI insights for sales"""
-    today = datetime.now(timezone.utc).date().isoformat()
+    sales = list(sales_col().find())
     
-    today_sales = [s for s in db_sales.values() if s["created_at"][:10] == today]
-    today_total = sum(s["total"] for s in today_sales)
+    if not sales:
+        return {
+            "insights": [{"type": "info", "message": "Aucune vente enregistrée"}],
+            "top_products": [],
+            "payment_breakdown": {},
+            "generated_at": datetime.now(timezone.utc).isoformat()
+        }
+    
+    # Calculate top products
+    product_sales = {}
+    for sale in sales:
+        sale = serialize_doc(sale)
+        for item in sale_items_col().find({"sale_id": sale["id"]}):
+            item = serialize_doc(item)
+            prod_id = item["product_id"]
+            if prod_id not in product_sales:
+                product_sales[prod_id] = {"name": item.get("product_name", "Inconnu"), "quantity": 0, "revenue": 0}
+            product_sales[prod_id]["quantity"] += item["quantity"]
+            product_sales[prod_id]["revenue"] += item["total"]
+    
+    top_products = sorted(product_sales.values(), key=lambda x: x["revenue"], reverse=True)[:5]
     
     # Payment method breakdown
-    payment_methods = {}
-    for sale in db_sales.values():
+    payment_breakdown = {}
+    for sale in sales:
+        sale = serialize_doc(sale)
         method = sale["payment_method"]
-        payment_methods[method] = payment_methods.get(method, 0) + sale["total"]
-    
-    insights = []
-    
-    if len(today_sales) == 0:
-        insights.append({
-            "type": "info",
-            "icon": "📈",
-            "message": "Aucune vente aujourd'hui. Créez une promotion pour attirer les clients!"
-        })
-    else:
-        insights.append({
-            "type": "success",
-            "icon": "✅",
-            "message": f"{len(today_sales)} vente(s) aujourd'hui pour {today_total:,.0f} FCFA"
-        })
-    
-    # Most used payment method
-    if payment_methods:
-        top_method = max(payment_methods, key=payment_methods.get)
-        method_labels = {"cash": "Espèces", "orange_money": "Orange Money", "card": "Carte"}
-        insights.append({
-            "type": "info",
-            "icon": "💳",
-            "message": f"Mode de paiement préféré: {method_labels.get(top_method, top_method)}"
-        })
+        if method not in payment_breakdown:
+            payment_breakdown[method] = {"count": 0, "total": 0}
+        payment_breakdown[method]["count"] += 1
+        payment_breakdown[method]["total"] += sale["total"]
     
     return {
-        "insights": insights,
-        "today_sales": len(today_sales),
-        "today_revenue": today_total,
-        "payment_breakdown": payment_methods,
+        "insights": [{"type": "success", "message": f"{len(sales)} ventes réalisées"}],
+        "top_products": top_products,
+        "payment_breakdown": payment_breakdown,
         "generated_at": datetime.now(timezone.utc).isoformat()
     }
 
 @api_router.post("/ai/generate-suggestion")
-async def generate_ai_suggestion(context: dict = None):
-    """Generate AI suggestion based on current context"""
-    prompt = f"""En tant qu'assistant IA pour StartupManager Pro, génère une suggestion utile et actionnable.
+async def generate_ai_suggestion(context: dict):
+    """Generate contextual AI suggestions"""
+    page = context.get("page", "general")
     
-    Contexte actuel:
-    - Produits: {len(db_products)}
-    - Employés: {len(db_employees)}
-    - Ventes: {len(db_sales)}
-    - Boutiques: {len(db_shops)}
+    prompts = {
+        "dashboard": "Analyse les données du dashboard et suggère 3 actions prioritaires pour améliorer les performances.",
+        "stock": "Analyse le stock et suggère des actions pour optimiser la gestion des inventaires.",
+        "sales": "Analyse les ventes et suggère des stratégies pour augmenter le chiffre d'affaires.",
+        "hr": "Suggère des bonnes pratiques RH pour une PME africaine.",
+        "marketing": "Suggère 3 idées de campagnes marketing adaptées au marché africain.",
+        "general": "Donne 3 conseils pour améliorer la gestion de l'entreprise."
+    }
     
-    Génère UNE suggestion courte (max 2 phrases) pour améliorer la performance de l'entreprise.
-    La suggestion doit être pratique et immédiatement applicable."""
-    
+    prompt = prompts.get(page, prompts["general"])
     suggestion = await generate_ai_content(prompt, "Tu es un consultant business expert. Donne des conseils concis et pertinents.")
     
-    return {
-        "suggestion": suggestion,
-        "generated_at": datetime.now(timezone.utc).isoformat()
-    }
+    return {"suggestion": suggestion, "context": page}
 
 # ========================
-# ACCOUNTS/FINANCES ROUTES
+# ACCOUNTS ROUTES
 # ========================
 
 @api_router.get("/accounts", response_model=List[AccountResponse])
 async def get_accounts(shop_id: Optional[str] = None):
-    accounts = []
-    for acc in db_accounts.values():
-        if shop_id and acc["shop_id"] != shop_id:
-            continue
-        accounts.append(AccountResponse(**acc))
-    return accounts
+    query = {}
+    if shop_id:
+        query["shop_id"] = shop_id
+    
+    accounts = list(accounts_col().find(query))
+    return [AccountResponse(**serialize_doc(a)) for a in accounts]
 
 # ========================
-# PAYMENTS ROUTES (MOCK)
+# PAYMENTS ROUTES (ENHANCED MOCK)
 # ========================
 
 @api_router.post("/payments/orange/initiate", response_model=PaymentResponse)
 async def initiate_orange_payment(payment: PaymentInitiate):
-    # Mock Orange Money payment
+    """Initiate Orange Money payment (simulated)"""
     transaction_id = f"OM-{str(uuid.uuid4())[:8].upper()}"
+    
+    # Store payment record
+    payment_record = {
+        "id": str(uuid.uuid4()),
+        "transaction_id": transaction_id,
+        "type": "orange_money",
+        "amount": payment.amount,
+        "phone": payment.phone,
+        "sale_id": payment.sale_id,
+        "status": "pending",
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    payments_col().insert_one(payment_record)
+    
     return PaymentResponse(
         status="pending",
         transaction_id=transaction_id,
-        message=f"Paiement Orange Money de {payment.amount} FCFA initié. Confirmez sur votre téléphone."
+        message=f"Paiement Orange Money de {payment.amount:,.0f} FCFA initié. Veuillez confirmer sur votre téléphone {payment.phone}.",
+        details={
+            "phone": payment.phone,
+            "amount": payment.amount,
+            "instructions": "Tapez *144*4*6# pour confirmer le paiement"
+        }
     )
 
-@api_router.post("/payments/orange/confirm", response_model=PaymentResponse)
+@api_router.post("/payments/orange/confirm/{transaction_id}", response_model=PaymentResponse)
 async def confirm_orange_payment(transaction_id: str):
-    # Mock confirmation
+    """Confirm Orange Money payment (simulated)"""
+    payment = payments_col().find_one({"transaction_id": transaction_id})
+    if not payment:
+        raise HTTPException(status_code=404, detail="Transaction non trouvée")
+    
+    payments_col().update_one(
+        {"transaction_id": transaction_id},
+        {"$set": {"status": "success", "confirmed_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    
+    payment = serialize_doc(payment)
     return PaymentResponse(
         status="success",
         transaction_id=transaction_id,
-        message="Paiement Orange Money confirmé avec succès."
+        message=f"Paiement Orange Money de {payment['amount']:,.0f} FCFA confirmé avec succès!",
+        details={"receipt_number": f"REC-{str(uuid.uuid4())[:6].upper()}"}
     )
 
 @api_router.post("/payments/card", response_model=PaymentResponse)
 async def process_card_payment(payment: PaymentInitiate):
-    # Mock card payment
+    """Process card payment (simulated)"""
     transaction_id = f"CARD-{str(uuid.uuid4())[:8].upper()}"
+    
+    payment_record = {
+        "id": str(uuid.uuid4()),
+        "transaction_id": transaction_id,
+        "type": "card",
+        "amount": payment.amount,
+        "sale_id": payment.sale_id,
+        "status": "success",
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    payments_col().insert_one(payment_record)
+    
     return PaymentResponse(
         status="success",
         transaction_id=transaction_id,
-        message=f"Paiement par carte de {payment.amount} FCFA traité avec succès."
+        message=f"Paiement par carte de {payment.amount:,.0f} FCFA traité avec succès.",
+        details={
+            "card_type": "VISA",
+            "last_four": "****4242",
+            "receipt_number": f"REC-{str(uuid.uuid4())[:6].upper()}"
+        }
     )
 
+@api_router.post("/payments/cash", response_model=PaymentResponse)
+async def process_cash_payment(payment: PaymentInitiate):
+    """Process cash payment (simulated)"""
+    transaction_id = f"CASH-{str(uuid.uuid4())[:8].upper()}"
+    
+    payment_record = {
+        "id": str(uuid.uuid4()),
+        "transaction_id": transaction_id,
+        "type": "cash",
+        "amount": payment.amount,
+        "sale_id": payment.sale_id,
+        "status": "success",
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    payments_col().insert_one(payment_record)
+    
+    return PaymentResponse(
+        status="success",
+        transaction_id=transaction_id,
+        message=f"Paiement en espèces de {payment.amount:,.0f} FCFA enregistré.",
+        details={"receipt_number": f"REC-{str(uuid.uuid4())[:6].upper()}"}
+    )
+
+@api_router.get("/payments/history")
+async def get_payment_history(limit: int = 50):
+    """Get payment history"""
+    payments = list(payments_col().find().sort("created_at", -1).limit(limit))
+    return serialize_docs(payments)
+
 # ========================
-# WHATSAPP ROUTES (MOCK)
+# WHATSAPP ROUTES (ENHANCED MOCK)
 # ========================
 
 @api_router.post("/whatsapp/send-receipt")
 async def send_whatsapp_receipt(data: WhatsAppReceipt):
-    if data.sale_id not in db_sales:
+    """Send receipt via WhatsApp (simulated)"""
+    sale = sales_col().find_one({"id": data.sale_id})
+    if not sale:
         raise HTTPException(status_code=404, detail="Vente non trouvée")
     
-    sale = db_sales[data.sale_id]
-    items = [item for item in db_sale_items.values() if item["sale_id"] == data.sale_id]
+    sale = serialize_doc(sale)
+    items = list(sale_items_col().find({"sale_id": data.sale_id}))
     
-    # Mock WhatsApp send
+    # Store message record
+    message_id = str(uuid.uuid4())
+    message_record = {
+        "id": message_id,
+        "type": "receipt",
+        "phone": data.phone,
+        "sale_id": data.sale_id,
+        "status": "sent",
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    whatsapp_messages_col().insert_one(message_record)
+    
     return {
         "status": "sent",
+        "message_id": message_id,
         "message": f"Reçu envoyé via WhatsApp au {data.phone}",
         "receipt": {
             "sale_id": data.sale_id,
             "total": sale["total"],
             "items_count": len(items),
-            "date": sale["created_at"]
+            "date": sale["created_at"],
+            "preview": f"🧾 *Reçu StartupManager Pro*\nTotal: {sale['total']:,.0f} FCFA\nDate: {sale['created_at'][:10]}\nMerci de votre achat!"
         }
     }
 
 @api_router.post("/sms/send-receipt")
 async def send_sms_receipt(data: WhatsAppReceipt):
-    if data.sale_id not in db_sales:
+    """Send receipt via SMS (simulated)"""
+    sale = sales_col().find_one({"id": data.sale_id})
+    if not sale:
         raise HTTPException(status_code=404, detail="Vente non trouvée")
     
-    sale = db_sales[data.sale_id]
+    sale = serialize_doc(sale)
     
-    # Mock SMS send
     return {
         "status": "sent",
         "message": f"Reçu envoyé par SMS au {data.phone}",
         "receipt": {
             "sale_id": data.sale_id,
             "total": sale["total"],
-            "date": sale["created_at"]
+            "date": sale["created_at"],
+            "preview": f"StartupManager Pro - Reçu: {sale['total']:,.0f} FCFA. Merci!"
         }
+    }
+
+@api_router.post("/whatsapp/send-promo")
+async def send_whatsapp_promo(phone: str, message: str):
+    """Send promotional message via WhatsApp (simulated)"""
+    message_id = str(uuid.uuid4())
+    message_record = {
+        "id": message_id,
+        "type": "promo",
+        "phone": phone,
+        "content": message,
+        "status": "sent",
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    whatsapp_messages_col().insert_one(message_record)
+    
+    return {
+        "status": "sent",
+        "message_id": message_id,
+        "message": f"Message promotionnel envoyé au {phone}"
     }
 
 # ========================
@@ -1733,38 +1928,137 @@ async def send_sms_receipt(data: WhatsAppReceipt):
 
 @api_router.get("/dashboard/stats")
 async def get_dashboard_stats():
-    shop_id = list(db_shops.keys())[0] if db_shops else None
+    shop = shops_col().find_one()
+    shop_id = serialize_doc(shop)["id"] if shop else None
     
-    # Calculate today's sales
     today = datetime.now(timezone.utc).date().isoformat()
     today_sales = sum(
-        s["total"] for s in db_sales.values() 
-        if s["created_at"][:10] == today
+        s["total"] for s in sales_col().find()
+        if serialize_doc(s)["created_at"][:10] == today
     )
     
-    # Calculate monthly revenue
     current_month = datetime.now(timezone.utc).strftime("%Y-%m")
     monthly_revenue = sum(
-        s["total"] for s in db_sales.values() 
-        if s["created_at"][:7] == current_month
+        s["total"] for s in sales_col().find()
+        if serialize_doc(s)["created_at"][:7] == current_month
     )
     
-    # Get account balances
-    cash_balance = sum(a["balance"] for a in db_accounts.values() if a["type"] == "cash")
-    orange_balance = sum(a["balance"] for a in db_accounts.values() if a["type"] == "orange_money")
-    bank_balance = sum(a["balance"] for a in db_accounts.values() if a["type"] == "bank")
+    cash_balance = sum(serialize_doc(a)["balance"] for a in accounts_col().find({"type": "cash"}))
+    orange_balance = sum(serialize_doc(a)["balance"] for a in accounts_col().find({"type": "orange_money"}))
+    bank_balance = sum(serialize_doc(a)["balance"] for a in accounts_col().find({"type": "bank"}))
+    
+    recent_sales = list(sales_col().find().sort("created_at", -1).limit(5))
     
     return {
         "today_sales": today_sales,
         "monthly_revenue": monthly_revenue,
-        "total_shops": len(db_shops),
-        "total_products": len(db_products),
-        "total_employees": len(db_employees),
+        "total_shops": shops_col().count_documents({}),
+        "total_products": products_col().count_documents({}),
+        "total_employees": employees_col().count_documents({}),
         "cash_balance": cash_balance,
         "orange_money_balance": orange_balance,
         "bank_balance": bank_balance,
-        "recent_sales": list(db_sales.values())[-5:] if db_sales else []
+        "recent_sales": serialize_docs(recent_sales)
     }
+
+# ========================
+# EXPORT ROUTES (P3)
+# ========================
+
+@api_router.get("/export/sales/pdf")
+async def export_sales_pdf():
+    """Export sales report as PDF"""
+    sales = list(sales_col().find().sort("created_at", -1))
+    
+    buffer = BytesIO()
+    p = canvas.Canvas(buffer, pagesize=A4)
+    width, height = A4
+    
+    # Header
+    p.setFont("Helvetica-Bold", 18)
+    p.drawString(2*cm, height - 2*cm, "Rapport des Ventes - StartupManager Pro")
+    
+    p.setFont("Helvetica", 10)
+    p.drawString(2*cm, height - 2.8*cm, f"Généré le: {datetime.now().strftime('%d/%m/%Y %H:%M')}")
+    
+    # Table header
+    y = height - 4*cm
+    p.setFont("Helvetica-Bold", 10)
+    p.drawString(2*cm, y, "Date")
+    p.drawString(5*cm, y, "Méthode")
+    p.drawString(9*cm, y, "Total (FCFA)")
+    p.drawString(13*cm, y, "ID Transaction")
+    
+    # Table content
+    p.setFont("Helvetica", 9)
+    y -= 0.7*cm
+    total_revenue = 0
+    
+    for sale in sales[:30]:  # Limit to 30 sales per page
+        sale = serialize_doc(sale)
+        if y < 3*cm:
+            p.showPage()
+            y = height - 2*cm
+        
+        p.drawString(2*cm, y, sale["created_at"][:10])
+        p.drawString(5*cm, y, sale["payment_method"].upper())
+        p.drawString(9*cm, y, f"{sale['total']:,.0f}")
+        p.drawString(13*cm, y, sale["id"][:12])
+        
+        total_revenue += sale["total"]
+        y -= 0.5*cm
+    
+    # Summary
+    y -= 1*cm
+    p.setFont("Helvetica-Bold", 12)
+    p.drawString(2*cm, y, f"Total des ventes: {total_revenue:,.0f} FCFA")
+    p.drawString(2*cm, y - 0.5*cm, f"Nombre de transactions: {len(sales)}")
+    
+    p.save()
+    buffer.seek(0)
+    
+    return StreamingResponse(
+        buffer,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f"attachment; filename=rapport_ventes_{datetime.now().strftime('%Y%m%d')}.pdf"}
+    )
+
+@api_router.get("/export/products/csv")
+async def export_products_csv():
+    """Export products as CSV"""
+    products = list(products_col().find())
+    
+    csv_content = "ID,Nom,Catégorie,Prix (FCFA),Stock,Date Création\n"
+    for prod in products:
+        prod = serialize_doc(prod)
+        stock = sum(b["quantity"] for b in batches_col().find({"product_id": prod["id"]}))
+        csv_content += f'"{prod["id"][:8]}","{prod["name"]}","{prod["category"]}",{prod["price"]},{stock},"{prod["created_at"][:10]}"\n'
+    
+    buffer = BytesIO(csv_content.encode('utf-8-sig'))
+    
+    return StreamingResponse(
+        buffer,
+        media_type="text/csv",
+        headers={"Content-Disposition": f"attachment; filename=produits_{datetime.now().strftime('%Y%m%d')}.csv"}
+    )
+
+@api_router.get("/export/employees/csv")
+async def export_employees_csv():
+    """Export employees as CSV"""
+    employees = list(employees_col().find())
+    
+    csv_content = "ID,Nom,Poste,Salaire (FCFA),Type Contrat\n"
+    for emp in employees:
+        emp = serialize_doc(emp)
+        csv_content += f'"{emp["id"][:8]}","{emp["name"]}","{emp["position"]}",{emp["salary"]},"{emp["contract_type"]}"\n'
+    
+    buffer = BytesIO(csv_content.encode('utf-8-sig'))
+    
+    return StreamingResponse(
+        buffer,
+        media_type="text/csv",
+        headers={"Content-Disposition": f"attachment; filename=employes_{datetime.now().strftime('%Y%m%d')}.csv"}
+    )
 
 # ========================
 # ROOT ENDPOINT
@@ -1772,7 +2066,7 @@ async def get_dashboard_stats():
 
 @api_router.get("/")
 async def root():
-    return {"message": "StartupManager Pro API", "version": "1.0.0"}
+    return {"message": "StartupManager Pro API", "version": "2.0.0", "database": "MongoDB"}
 
 # Include the router in the main app
 app.include_router(api_router)
@@ -1791,3 +2085,10 @@ logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
+
+# Startup event
+@app.on_event("startup")
+async def startup_event():
+    init_indexes()
+    init_demo_data()
+    logger.info("StartupManager Pro API started with MongoDB")
