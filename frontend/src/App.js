@@ -209,15 +209,11 @@ const AppContent = () => {
             } />
           )}
           
-          {/* Access Action Page - Public (for email links) */}
-          <Route path="/access-action" element={<AccessActionPage />} />
-          
           {/* Default redirect */}
           <Route path="/" element={<Navigate to="/login" replace />} />
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>
         <Toaster position="top-right" richColors />
-      </BrowserRouter>
     </AuthProvider>
   );
 };
