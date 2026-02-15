@@ -7,6 +7,7 @@ import { CurrencyProvider } from "@/contexts/CurrencyContext";
 // Pages
 import AccessGatePage from "@/pages/AccessGatePage";
 import AccessActionPage from "@/pages/AccessActionPage";
+import AdminApprovePage from "@/pages/AdminApprovePage";
 import LoginPage from "@/pages/LoginPage";
 import RegisterPage from "@/pages/RegisterPage";
 import ForgotPasswordPage from "@/pages/ForgotPasswordPage";
@@ -23,8 +24,8 @@ import SettingsPage from "@/pages/SettingsPage";
 import ShopsPage from "@/pages/ShopsPage";
 import AccessControlPage from "@/pages/AccessControlPage";
 
-// Admin email - the only one who can bypass access control
-const ADMIN_EMAIL = "bangalykaba635@gmail.com";
+// Super Admin email - creator of the startup (TOTAL CONTROL)
+const SUPER_ADMIN_EMAIL = "bangalykaba635@gmail.com";
 
 // Auth Context
 const AuthContext = createContext(null);
