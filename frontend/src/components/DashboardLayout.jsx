@@ -167,6 +167,17 @@ const DashboardLayout = ({ children, title }) => {
         <main className="flex-1 overflow-auto p-4 lg:p-8">
           {children}
         </main>
+
+        {/* Footer Signature */}
+        <footer className="h-12 bg-card border-t border-border flex items-center justify-center px-4">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <div className="w-6 h-6 rounded-full bg-gradient-to-r from-indigo-500 to-orange-500 flex items-center justify-center">
+              <span className="text-[10px] font-bold text-white">BK</span>
+            </div>
+            <span>Développé par</span>
+            <span className="font-semibold text-foreground">Bangaly Kaba</span>
+          </div>
+        </footer>
       </div>
     </div>
   );
