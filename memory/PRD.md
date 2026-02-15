@@ -32,53 +32,91 @@ Système complet de gestion de startup avec:
 ## Tech Stack
 - **Frontend**: React 19, Tailwind CSS, Shadcn UI
 - **Backend**: FastAPI (Python)
-- **Database**: In-memory (simulation PostgreSQL)
+- **Database**: MongoDB ✅ PERSISTANT
 - **AI**: OpenAI GPT-5.2 via Emergent LLM Key ✅ FONCTIONNEL
 - **Email**: Resend API ✅ FONCTIONNEL
 
 ## What's Been Implemented (Feb 15, 2026)
 
-### Authentication
+### P1 - Migration MongoDB (COMPLÉTÉ ✅)
+- [x] Configuration MongoDB avec indexes
+- [x] Données de démo auto-initialisées
+- [x] CRUD complet avec persistance
+- [x] Sérialisation des documents (_id exclus)
+- [x] Collections: users, shops, products, batches, sales, employees, documents, accounts, access_requests, authorized_users, payments, whatsapp_messages
+
+### P2 - Paiements Simulés (COMPLÉTÉ ✅)
+- [x] Orange Money - initiation et confirmation (SIMULÉ)
+- [x] Paiement par carte (SIMULÉ)
+- [x] Paiement en espèces (SIMULÉ)
+- [x] Historique des paiements
+- [x] WhatsApp receipt (SIMULÉ)
+- [x] SMS receipt (SIMULÉ)
+- [x] Messages promotionnels WhatsApp (SIMULÉ)
+
+### P3 - Exports de Données (COMPLÉTÉ ✅)
+- [x] Export CSV des produits
+- [x] Export CSV des employés
+- [x] Export PDF des ventes
+
+### Système de Contrôle d'Accès (COMPLÉTÉ ✅)
+- [x] Page de demande d'accès pour nouveaux utilisateurs
+- [x] Notifications email à l'admin (Resend API)
+- [x] Boutons d'action dans l'email (Permanent, 20 Minutes, Refuser)
+- [x] Vérification d'accès automatique
+- [x] Expiration d'accès temporaire avec countdown
+- [x] Page de gestion des accès pour admin
+
+### Intégration AI OpenAI GPT-5.2 (COMPLÉTÉ ✅)
+- [x] Génération de contrats de travail
+- [x] Génération d'attestations de travail
+- [x] Génération d'attestations de stage
+- [x] Génération de publicités produits
+- [x] Génération d'offres d'emploi
+- [x] Assistant IA du centre d'aide
+- [x] Insights dashboard avec suggestions IA
+
+### Authentication (COMPLÉTÉ ✅)
 - [x] Login page avec compte démo
 - [x] Registration avec sélection de rôle
 - [x] Forgot password (mock)
 - [x] JWT authentication
 - [x] Theme toggle (dark/light)
 
-### Dashboard CEO
+### Dashboard CEO (COMPLÉTÉ ✅)
 - [x] 6 cartes de stats (Ventes aujourd'hui, Revenus mensuels, Boutiques, Orange Money, Banque, Cash)
 - [x] Graphique des ventes de la semaine
 - [x] Graphique des ventes par catégorie
 - [x] Liste des ventes récentes
-- [x] Aperçu rapide
+- [x] Insights IA avec auto-refresh
 
-### POS (Point de Vente)
+### POS (Point de Vente) (COMPLÉTÉ ✅)
 - [x] Grille de produits avec recherche
 - [x] Filtres par catégorie
 - [x] Panier avec ajout/suppression
 - [x] Ajustement des quantités
 - [x] Modal de paiement (Cash, Orange Money, Carte)
-- [x] Envoi de reçu WhatsApp/SMS (mock)
+- [x] Envoi de reçu WhatsApp/SMS (simulé)
 
-### Produits
+### Produits (COMPLÉTÉ ✅)
 - [x] Liste avec tableau
 - [x] Recherche
 - [x] CRUD complet (Ajouter, Modifier, Supprimer)
 - [x] Affichage du stock
 
-### Stock/Lots
+### Stock/Lots (COMPLÉTÉ ✅)
 - [x] Liste des lots avec détails
 - [x] Ajout de nouveaux lots
 - [x] Génération de QR codes
 - [x] Téléchargement de QR codes
 - [x] Modification des quantités
 
-### Employés
+### Employés (COMPLÉTÉ ✅)
 - [x] Liste des employés
 - [x] CRUD complet
 - [x] Types de contrat (CDI, CDD, Stage)
 
-### RH IA
+### RH IA (COMPLÉTÉ ✅)
 - [x] Sélection d'employé
 - [x] Génération de contrat de travail IA
 - [x] Génération d'attestation de travail IA
@@ -87,53 +125,37 @@ Système complet de gestion de startup avec:
 - [x] Signature électronique
 - [x] Téléchargement PDF
 
-### Marketing IA
+### Marketing IA (COMPLÉTÉ ✅)
 - [x] Création de publicité produit
 - [x] Création d'offre d'emploi
 - [x] Génération de contenu Facebook/WhatsApp
 - [x] Copie dans le presse-papier
 
-### Finances
+### Finances (COMPLÉTÉ ✅)
 - [x] Vue des soldes (Cash, Orange Money, Banque)
 - [x] Graphique d'évolution
 - [x] Répartition des soldes (pie chart)
 - [x] Historique des transactions
 
-### Centre d'Aide
+### Centre d'Aide (COMPLÉTÉ ✅)
 - [x] Guides d'utilisation
 - [x] Recherche
 - [x] Assistant IA avec chat
 
-### Boutiques
-- [x] Liste des boutiques
-- [x] Création de nouvelles boutiques
+## Test Results (Feb 15, 2026)
+- **Backend**: 96.6% (28/29 tests passed)
+- **Frontend**: 100% (all pages working)
+- **Test Report**: `/app/test_reports/iteration_2.json`
 
-### Paramètres
-- [x] Informations profil
-- [x] Toggle thème
-- [x] Notifications (UI)
-- [x] Déconnexion
-
-### Système de Contrôle d'Accès (Feb 15, 2026)
-- [x] Page de demande d'accès pour nouveaux utilisateurs
-- [x] Notifications email à l'admin (Resend API)
-- [x] Boutons d'action dans l'email (Permanent, 20 Minutes, Refuser) ✅ FONCTIONNEL
-- [x] Vérification d'accès automatique
-- [x] Expiration d'accès temporaire avec countdown
-- [x] Page de gestion des accès pour admin
-
-### Intégration AI OpenAI GPT-5.2 (Feb 15, 2026)
-- [x] Génération de contrats de travail ✅ FONCTIONNEL
-- [x] Génération d'attestations de travail ✅ FONCTIONNEL
-- [x] Génération d'attestations de stage ✅ FONCTIONNEL
-- [x] Génération de publicités produits ✅ FONCTIONNEL
-- [x] Génération d'offres d'emploi ✅ FONCTIONNEL
-- [x] Assistant IA du centre d'aide ✅ FONCTIONNEL
-- [x] Insights dashboard avec suggestions IA
+## Credentials
+| Role  | Email               | Password   | Notes                                 |
+| :---- | :------------------ | :--------- | :------------------------------------ |
+| Admin | `admin@startup.com` | `admin123` | Compte démo principal                 |
+| Owner | `bangalykaba635@gmail.com` | N/A | Super-admin (accès automatique)       |
 
 ## Prioritized Backlog
 
-### P0 - Critical (Done)
+### P0 - Critical (DONE ✅)
 - [x] Authentication flow
 - [x] Dashboard avec stats
 - [x] POS functionality
@@ -142,42 +164,132 @@ Système complet de gestion de startup avec:
 - [x] Email notifications (Resend)
 - [x] AI Integration (OpenAI GPT-5.2)
 - [x] Access control system
+- [x] MongoDB persistence
+- [x] Payment simulations
+- [x] Export functionality
 
-### P1 - High Priority
-- [ ] Real PostgreSQL database migration (données perdues au redémarrage actuellement)
-- [ ] Real Orange Money integration
+### P1 - High Priority (Future)
+- [ ] Real Orange Money integration (via API)
 - [ ] Real WhatsApp integration (Twilio/Meta)
 - [ ] File upload for product images
-- [ ] Export des rapports (PDF, Excel)
+- [ ] Multi-language support
 
-### P2 - Medium Priority
+### P2 - Medium Priority (Future)
 - [ ] Multi-boutique support complet
 - [ ] Gestion des promotions
 - [ ] Alertes stock faible automatiques
 - [ ] Historique des modifications
 - [ ] Recherche avancée avec filtres
 
-### P3 - Nice to Have
+### P3 - Nice to Have (Future)
 - [ ] Application mobile (React Native)
 - [ ] Scan QR code réel (camera)
 - [ ] Intégration comptabilité
 - [ ] Multi-devise
 - [ ] Rapports personnalisés
 
-## Credentials
-| Role  | Email               | Password   | Notes                                 |
-| :---- | :------------------ | :--------- | :------------------------------------ |
-| Admin | `admin@startup.com` | `admin123` | Compte démo principal                 |
-| Owner | `bangalykaba635@gmail.com` | N/A | Super-admin (accès automatique)       |
-
-## Next Tasks
-1. Migration vers PostgreSQL pour persistance des données
-2. Ajouter des images produits réelles
-3. Améliorer le responsive pour mobile
-4. Ajouter plus de guides dans le centre d'aide
-5. Implémenter l'historique des ventes détaillé
-
 ## Known Limitations
-- **Database**: Utilise des dictionnaires Python en mémoire - toutes les données sont perdues au redémarrage du serveur
-- **Payments**: Orange Money et paiements par carte sont simulés (mock)
-- **WhatsApp/SMS**: Envoi de reçus simulé
+- **Payments**: Orange Money, Carte, WhatsApp/SMS sont SIMULÉS (pas connectés aux vraies APIs)
+- **AI Contract**: Peut timeout après 30s (autres fonctions IA fonctionnent)
+
+## Architecture
+
+```
+/app
+├── backend/
+│   ├── .env                    # Environment variables
+│   ├── database.py             # MongoDB configuration
+│   ├── requirements.txt        # Python dependencies
+│   ├── server.py               # FastAPI with all endpoints
+│   └── tests/
+│       └── test_startup_manager.py
+└── frontend/
+    ├── public/
+    ├── src/
+    │   ├── components/
+    │   │   └── DashboardLayout.jsx
+    │   ├── hooks/
+    │   │   └── useAutoRefresh.js
+    │   ├── lib/
+    │   │   └── api.js
+    │   ├── pages/
+    │   │   ├── AccessControlPage.jsx
+    │   │   ├── AccessGatePage.jsx
+    │   │   ├── DashboardPage.jsx
+    │   │   ├── EmployeesPage.jsx
+    │   │   ├── FinancesPage.jsx
+    │   │   ├── HelpCenterPage.jsx
+    │   │   ├── LoginPage.jsx
+    │   │   ├── MarketingIAPage.jsx
+    │   │   ├── POSPage.jsx
+    │   │   ├── ProductsPage.jsx
+    │   │   ├── RHIAPage.jsx
+    │   │   ├── SettingsPage.jsx
+    │   │   ├── ShopsPage.jsx
+    │   │   └── StockPage.jsx
+    │   ├── App.js
+    │   └── index.css
+    └── package.json
+```
+
+## API Endpoints Summary
+
+### Authentication
+- POST /api/auth/register
+- POST /api/auth/login
+- POST /api/auth/forgot-password
+
+### Access Control
+- POST /api/access/request
+- GET /api/access/check/{email}
+- GET /api/access/requests
+- GET /api/access/authorized
+- PUT /api/access/approve/{request_id}
+- PUT /api/access/deny/{request_id}
+- GET /api/access/quick-approve/{request_id}/{access_type}
+- GET /api/access/quick-deny/{request_id}
+
+### Products & Stock
+- GET/POST /api/products
+- GET/PUT/DELETE /api/products/{id}
+- GET/POST /api/batches
+- GET /api/batches/{id}/qr
+
+### Sales
+- GET/POST /api/sales
+
+### Employees & Documents
+- GET/POST /api/employees
+- GET/PUT/DELETE /api/employees/{id}
+- GET /api/documents
+- PUT /api/documents/{id}/sign
+- GET /api/documents/{id}/pdf
+
+### AI Features
+- POST /api/ai/contract
+- POST /api/ai/attestation-work
+- POST /api/ai/attestation-stage
+- POST /api/ai/product-ad
+- POST /api/ai/job-offer
+- POST /api/ai/help
+- GET /api/ai/insights/dashboard
+
+### Payments (SIMULATED)
+- POST /api/payments/orange/initiate
+- POST /api/payments/orange/confirm/{transaction_id}
+- POST /api/payments/card
+- POST /api/payments/cash
+- GET /api/payments/history
+
+### Messaging (SIMULATED)
+- POST /api/whatsapp/send-receipt
+- POST /api/sms/send-receipt
+
+### Exports
+- GET /api/export/sales/pdf
+- GET /api/export/products/csv
+- GET /api/export/employees/csv
+
+### Dashboard
+- GET /api/dashboard/stats
+- GET /api/accounts
