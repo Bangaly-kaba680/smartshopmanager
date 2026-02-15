@@ -158,17 +158,20 @@ const LoginPage = () => {
         <div 
           className="absolute inset-0 bg-cover bg-center"
           style={{ 
-            backgroundImage: 'url(https://images.unsplash.com/photo-1604783020105-a1c1a856a55d?w=1200&q=80)',
+            backgroundImage: 'url(https://customer-assets.emergentagent.com/job_shopflow-208/artifacts/sc9e7l7a_WhatsApp%20Image%202026-02-15%20at%2006.29.14.jpeg)',
           }}
         />
-        <div className="absolute inset-0 bg-slate-900/60" />
+        <div className="absolute inset-0 bg-gradient-to-t from-slate-900/90 via-slate-900/40 to-transparent" />
         <div className="absolute inset-0 flex flex-col justify-end p-12">
           <blockquote className="text-white">
             <p className="text-xl italic mb-4">
               "Gérer mes boutiques n'a jamais été aussi simple. StartupManager Pro a transformé ma façon de travailler."
             </p>
-            <footer className="text-slate-300">
-              — Fatou D., CEO
+            <footer className="text-slate-300 flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-gradient-to-r from-indigo-500 to-orange-500 flex items-center justify-center text-white font-bold">
+                BK
+              </div>
+              <span>— Bangaly Kaba, Fondateur</span>
             </footer>
           </blockquote>
         </div>
