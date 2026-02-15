@@ -128,9 +128,12 @@ const DashboardPage = () => {
   const generateAISuggestion = async () => {
     setLoadingSuggestion(true);
     try {
-      const response = await axios.post(`${BACKEND_URL}/api/ai/generate-suggestion`);
+      const response = await axios.post(`${BACKEND_URL}/api/ai/generate-suggestion`, {
+        page: 'dashboard'
+      });
       setAiSuggestion(response.data.suggestion);
     } catch (error) {
+      console.error('AI Suggestion error:', error);
       toast.error('Erreur lors de la génération');
     } finally {
       setLoadingSuggestion(false);
