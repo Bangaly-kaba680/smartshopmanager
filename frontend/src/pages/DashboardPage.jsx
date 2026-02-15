@@ -79,6 +79,7 @@ const AIInsightCard = ({ insight }) => {
 };
 
 const DashboardPage = () => {
+  const { formatAmount } = useCurrency();
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [recentSales, setRecentSales] = useState([]);
