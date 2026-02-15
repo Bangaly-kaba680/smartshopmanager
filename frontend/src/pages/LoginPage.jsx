@@ -52,6 +52,9 @@ const LoginPage = () => {
         
         <div className="w-full max-w-md">
           <div className="mb-8 text-center lg:text-left">
+            <div className="flex items-center justify-center lg:justify-start gap-3 mb-4">
+              <img src="/logo.png" alt="StartupManager Pro" className="h-16 w-auto" />
+            </div>
             <h1 className="text-3xl font-bold text-foreground mb-2" style={{ fontFamily: 'Manrope, sans-serif' }}>
               StartupManager <span className="text-primary">Pro</span>
             </h1>
