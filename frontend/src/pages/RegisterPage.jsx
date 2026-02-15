@@ -207,17 +207,20 @@ const RegisterPage = () => {
         <div 
           className="absolute inset-0 bg-cover bg-center"
           style={{ 
-            backgroundImage: 'url(https://images.unsplash.com/photo-1770191954675-06f770e6cbd0?w=1200&q=80)',
+            backgroundImage: 'url(https://customer-assets.emergentagent.com/job_shopflow-208/artifacts/qhnu6y1t_WhatsApp%20Image%202026-02-15%20at%2006.29.14%20%281%29.jpeg)',
           }}
         />
-        <div className="absolute inset-0 bg-slate-900/60" />
+        <div className="absolute inset-0 bg-gradient-to-t from-slate-900/90 via-slate-900/40 to-transparent" />
         <div className="absolute inset-0 flex flex-col justify-end p-12">
           <blockquote className="text-white">
             <p className="text-xl italic mb-4">
               "Une plateforme complète qui m'a permis de digitaliser toute ma gestion d'entreprise en quelques clics."
             </p>
-            <footer className="text-slate-300">
-              — Moussa N., Entrepreneur
+            <footer className="text-slate-300 flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-gradient-to-r from-indigo-500 to-orange-500 flex items-center justify-center text-white font-bold">
+                BK
+              </div>
+              <span>— Bangaly Kaba, Fondateur</span>
             </footer>
           </blockquote>
         </div>
