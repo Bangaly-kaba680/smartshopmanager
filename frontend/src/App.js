@@ -262,6 +262,19 @@ const AccessGate = () => {
     }
   }, []);
 
+  // Check if we're on the access-action page (public page for email links)
+  const isAccessActionPage = window.location.pathname === '/access-action';
+  
+  if (isAccessActionPage) {
+    return (
+      <BrowserRouter>
+        <Routes>
+          <Route path="/access-action" element={<AccessActionPage />} />
+        </Routes>
+      </BrowserRouter>
+    );
+  }
+
   if (checking) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
