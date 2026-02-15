@@ -66,7 +66,8 @@ async def send_access_notification_email(request_name: str, request_email: str, 
             logging.warning("Resend API key not configured - skipping email notification")
             return False
         
-        app_url = "https://shopflow-208.preview.emergentagent.com"
+        app_url = os.environ.get('APP_URL', 'https://shopflow-208.preview.emergentagent.com')
+        api_url = f"{app_url}/api"
         
         html_content = f"""
         <!DOCTYPE html>
@@ -95,19 +96,34 @@ async def send_access_notification_email(request_name: str, request_email: str, 
                     <p style="margin: 0;"><strong>📝 Motif :</strong> {request_reason or 'Non spécifié'}</p>
                 </div>
                 
-                <p style="color: #666; font-size: 14px; margin: 20px 0;">
-                    <strong>Actions disponibles :</strong>
+                <p style="color: #333; font-size: 16px; font-weight: bold; margin: 25px 0 15px 0; text-align: center;">
+                    ⚡ Choisissez une action :
                 </p>
                 
-                <div style="text-align: center; margin: 25px 0;">
-                    <a href="{app_url}" style="display: inline-block; background: linear-gradient(135deg, #6366f1 0%, #f97316 100%); color: white; text-decoration: none; padding: 12px 30px; border-radius: 8px; font-weight: bold; margin: 5px;">
-                        🔐 Gérer les Accès
+                <div style="text-align: center; margin: 20px 0;">
+                    <a href="{api_url}/access/quick-approve/{request_id}/permanent" 
+                       style="display: inline-block; background: #10B981; color: white; text-decoration: none; padding: 14px 28px; border-radius: 8px; font-weight: bold; margin: 8px; font-size: 14px;">
+                        ✅ PERMANENT
+                    </a>
+                </div>
+                
+                <div style="text-align: center; margin: 20px 0;">
+                    <a href="{api_url}/access/quick-approve/{request_id}/temporary" 
+                       style="display: inline-block; background: #3B82F6; color: white; text-decoration: none; padding: 14px 28px; border-radius: 8px; font-weight: bold; margin: 8px; font-size: 14px;">
+                        ⏱️ 20 MINUTES
+                    </a>
+                </div>
+                
+                <div style="text-align: center; margin: 20px 0;">
+                    <a href="{api_url}/access/quick-deny/{request_id}" 
+                       style="display: inline-block; background: #EF4444; color: white; text-decoration: none; padding: 14px 28px; border-radius: 8px; font-weight: bold; margin: 8px; font-size: 14px;">
+                        ❌ REFUSER
                     </a>
                 </div>
                 
                 <p style="color: #999; font-size: 12px; text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee;">
-                    Connectez-vous à votre dashboard pour approuver ou refuser cette demande.<br>
-                    <strong>Contrôle d'Accès</strong> → Demandes en attente
+                    Cliquez sur un bouton ci-dessus pour autoriser ou refuser l'accès.<br>
+                    L'action sera appliquée immédiatement.
                 </p>
             </div>
             
