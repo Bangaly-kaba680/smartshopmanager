@@ -184,6 +184,10 @@ class ApproveAccess(BaseModel):
 @api_router.post("/access/request")
 async def request_access(request: AccessRequest):
     """Request access to the application"""
+    # Admin always has access
+    if request.email.lower() == ADMIN_EMAIL.lower():
+        return {"status": "already_authorized", "message": "Accès admin automatique"}
+    
     # Check if already authorized
     for auth in db_authorized_users.values():
         if auth["email"] == request.email:
