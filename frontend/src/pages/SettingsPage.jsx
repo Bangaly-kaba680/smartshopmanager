@@ -259,6 +259,30 @@ const SettingsPage = () => {
                 data-testid="theme-switch"
               />
             </div>
+            <Separator />
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <DollarSign className="h-5 w-5" />
+                <div>
+                  <Label>Devise</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Choisir la devise d'affichage
+                  </p>
+                </div>
+              </div>
+              <Select value={currency.code} onValueChange={setCurrency}>
+                <SelectTrigger className="w-[180px]" data-testid="currency-select">
+                  <SelectValue placeholder="Sélectionner" />
+                </SelectTrigger>
+                <SelectContent>
+                  {currencies.map((c) => (
+                    <SelectItem key={c.code} value={c.code}>
+                      {c.name} ({c.symbol})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </CardContent>
         </Card>
 
