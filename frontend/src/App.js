@@ -278,32 +278,41 @@ function App() {
     <ThemeProvider>
       <CurrencyProvider>
         <BrowserRouter>
-          <AuthProvider>
-            <Routes>
-              {/* Auth Routes */}
-              <Route path="/login" element={<LoginPage />} />
-              <Route path="/register" element={<RegisterPage />} />
-              <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-              
-              {/* Protected Routes */}
-              <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
-              <Route path="/pos" element={<ProtectedRoute><POSPage /></ProtectedRoute>} />
-              <Route path="/products" element={<ProtectedRoute><ProductsPage /></ProtectedRoute>} />
-              <Route path="/stock" element={<ProtectedRoute><StockPage /></ProtectedRoute>} />
-              <Route path="/employees" element={<ProtectedRoute><EmployeesPage /></ProtectedRoute>} />
-              <Route path="/shops" element={<ProtectedRoute requireCEO><ShopsPage /></ProtectedRoute>} />
-              <Route path="/rh-ia" element={<ProtectedRoute requireCEO><RHIAPage /></ProtectedRoute>} />
-              <Route path="/marketing-ia" element={<ProtectedRoute><MarketingIAPage /></ProtectedRoute>} />
-              <Route path="/finances" element={<ProtectedRoute requireCEO><FinancesPage /></ProtectedRoute>} />
-              <Route path="/help" element={<ProtectedRoute><HelpCenterPage /></ProtectedRoute>} />
-              <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
-              
-              {/* Default redirect */}
-              <Route path="/" element={<Navigate to="/login" replace />} />
-              <Route path="*" element={<Navigate to="/dashboard" replace />} />
-            </Routes>
-            <Toaster position="top-right" richColors />
-          </AuthProvider>
+          <Routes>
+            {/* Public routes for admin approval (email links) */}
+            <Route path="/admin/approve" element={<AdminApprovePage />} />
+            <Route path="/admin/deny" element={<AdminApprovePage />} />
+            
+            {/* All other routes require auth */}
+            <Route path="/*" element={
+              <AuthProvider>
+                <Routes>
+                  {/* Auth Routes */}
+                  <Route path="/login" element={<LoginPage />} />
+                  <Route path="/register" element={<RegisterPage />} />
+                  <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+                  
+                  {/* Protected Routes */}
+                  <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
+                  <Route path="/pos" element={<ProtectedRoute><POSPage /></ProtectedRoute>} />
+                  <Route path="/products" element={<ProtectedRoute><ProductsPage /></ProtectedRoute>} />
+                  <Route path="/stock" element={<ProtectedRoute><StockPage /></ProtectedRoute>} />
+                  <Route path="/employees" element={<ProtectedRoute><EmployeesPage /></ProtectedRoute>} />
+                  <Route path="/shops" element={<ProtectedRoute requireCEO><ShopsPage /></ProtectedRoute>} />
+                  <Route path="/rh-ia" element={<ProtectedRoute requireCEO><RHIAPage /></ProtectedRoute>} />
+                  <Route path="/marketing-ia" element={<ProtectedRoute><MarketingIAPage /></ProtectedRoute>} />
+                  <Route path="/finances" element={<ProtectedRoute requireCEO><FinancesPage /></ProtectedRoute>} />
+                  <Route path="/help" element={<ProtectedRoute><HelpCenterPage /></ProtectedRoute>} />
+                  <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
+                  
+                  {/* Default redirect */}
+                  <Route path="/" element={<Navigate to="/login" replace />} />
+                  <Route path="*" element={<Navigate to="/dashboard" replace />} />
+                </Routes>
+                <Toaster position="top-right" richColors />
+              </AuthProvider>
+            } />
+          </Routes>
         </BrowserRouter>
       </CurrencyProvider>
     </ThemeProvider>
