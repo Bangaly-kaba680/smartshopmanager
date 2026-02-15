@@ -524,6 +524,20 @@ class AccessActionApprove(BaseModel):
 class AccessActionDeny(BaseModel):
     request_id: str
 
+# Security Models
+class WhitelistAdd(BaseModel):
+    email: EmailStr
+    name: str
+    role: str = "viewer"
+
+class BlockUser(BaseModel):
+    email: EmailStr
+    reason: Optional[str] = None
+
+class ApproveAccessRequest(BaseModel):
+    attempt_id: str
+    role: str = "viewer"
+
 # Shop Models
 class ShopCreate(BaseModel):
     name: str
