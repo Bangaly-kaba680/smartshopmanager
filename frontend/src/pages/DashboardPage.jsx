@@ -1,13 +1,19 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import DashboardLayout from '@/components/DashboardLayout';
 import { dashboardAPI, salesAPI } from '@/lib/api';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { 
   DollarSign, TrendingUp, Store, Smartphone, Building2, Banknote,
-  ShoppingCart, Users, Package, ArrowUpRight, ArrowDownRight
+  ShoppingCart, Users, Package, ArrowUpRight, ArrowDownRight,
+  RefreshCw, Sparkles, AlertTriangle, Lightbulb, Loader2
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
+import axios from 'axios';
+
+const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 
 const StatCard = ({ title, value, icon: Icon, trend, trendValue, color = 'primary' }) => {
   const colors = {
@@ -44,27 +50,88 @@ const formatCurrency = (value) => {
   return new Intl.NumberFormat('fr-FR', { style: 'decimal' }).format(value) + ' FCFA';
 };
 
+const AIInsightCard = ({ insight }) => {
+  const typeStyles = {
+    warning: 'border-amber-500 bg-amber-500/5',
+    critical: 'border-red-500 bg-red-500/5',
+    info: 'border-blue-500 bg-blue-500/5',
+    tip: 'border-emerald-500 bg-emerald-500/5',
+    success: 'border-emerald-500 bg-emerald-500/5'
+  };
+
+  return (
+    <div className={`p-4 rounded-lg border-l-4 ${typeStyles[insight.type] || 'border-primary bg-primary/5'}`}>
+      <div className="flex items-start gap-3">
+        <span className="text-2xl">{insight.icon}</span>
+        <div className="flex-1">
+          <h4 className="font-semibold text-sm">{insight.title}</h4>
+          <p className="text-sm text-muted-foreground mt-1">{insight.message}</p>
+          {insight.action && (
+            <Button size="sm" variant="outline" className="mt-2">
+              {insight.action}
+            </Button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const DashboardPage = () => {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [recentSales, setRecentSales] = useState([]);
+  const [aiInsights, setAiInsights] = useState([]);
+  const [aiSuggestion, setAiSuggestion] = useState('');
+  const [lastUpdate, setLastUpdate] = useState(null);
+  const [refreshing, setRefreshing] = useState(false);
+  const [loadingSuggestion, setLoadingSuggestion] = useState(false);
 
-  useEffect(() => {
-    fetchData();
-  }, []);
-
-  const fetchData = async () => {
+  const fetchData = useCallback(async (showToast = false) => {
     try {
-      const [statsRes, salesRes] = await Promise.all([
+      const [statsRes, salesRes, insightsRes] = await Promise.all([
         dashboardAPI.getStats(),
-        salesAPI.getAll()
+        salesAPI.getAll(),
+        axios.get(`${BACKEND_URL}/api/ai/insights/dashboard`)
       ]);
       setStats(statsRes.data);
       setRecentSales(salesRes.data.slice(0, 5));
+      setAiInsights(insightsRes.data.insights || []);
+      setLastUpdate(new Date());
+      if (showToast) toast.success('Données mises à jour');
     } catch (error) {
-      toast.error('Erreur lors du chargement des données');
+      console.error('Error fetching data:', error);
     } finally {
       setLoading(false);
+      setRefreshing(false);
+    }
+  }, []);
+
+  // Initial load
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  // Auto-refresh every 30 seconds
+  useEffect(() => {
+    const interval = setInterval(() => fetchData(false), 30000);
+    return () => clearInterval(interval);
+  }, [fetchData]);
+
+  const handleRefresh = () => {
+    setRefreshing(true);
+    fetchData(true);
+  };
+
+  const generateAISuggestion = async () => {
+    setLoadingSuggestion(true);
+    try {
+      const response = await axios.post(`${BACKEND_URL}/api/ai/generate-suggestion`);
+      setAiSuggestion(response.data.suggestion);
+    } catch (error) {
+      toast.error('Erreur lors de la génération');
+    } finally {
+      setLoadingSuggestion(false);
     }
   };
 
@@ -98,6 +165,44 @@ const DashboardPage = () => {
   return (
     <DashboardLayout title="Dashboard">
       <div className="space-y-8" data-testid="dashboard-content">
+        {/* Header with refresh */}
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm text-muted-foreground">
+              {lastUpdate && `Dernière mise à jour: ${lastUpdate.toLocaleTimeString('fr-FR')}`}
+            </p>
+          </div>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={handleRefresh}
+            disabled={refreshing}
+          >
+            <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
+            Actualiser
+          </Button>
+        </div>
+
+        {/* AI Insights Section */}
+        {aiInsights.length > 0 && (
+          <Card className="border-primary/20 bg-gradient-to-r from-primary/5 to-orange-500/5">
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <Sparkles className="h-5 w-5 text-primary" />
+                Insights IA
+                <Badge variant="secondary" className="ml-2">Auto-mise à jour</Badge>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {aiInsights.map((insight, idx) => (
+                  <AIInsightCard key={idx} insight={insight} />
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Stats Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
           <StatCard 
@@ -141,6 +246,47 @@ const DashboardPage = () => {
             color="emerald"
           />
         </div>
+
+        {/* AI Suggestion Box */}
+        <Card className="border-dashed border-2 border-primary/30">
+          <CardContent className="p-6">
+            <div className="flex items-start gap-4">
+              <div className="p-3 bg-gradient-to-br from-primary to-orange-500 rounded-xl">
+                <Lightbulb className="h-6 w-6 text-white" />
+              </div>
+              <div className="flex-1">
+                <h3 className="font-semibold flex items-center gap-2">
+                  Conseil IA Personnalisé
+                  <Badge className="bg-gradient-to-r from-primary to-orange-500">IA</Badge>
+                </h3>
+                {aiSuggestion ? (
+                  <p className="text-muted-foreground mt-2">{aiSuggestion}</p>
+                ) : (
+                  <p className="text-muted-foreground mt-2">
+                    Cliquez sur le bouton pour obtenir un conseil personnalisé basé sur vos données.
+                  </p>
+                )}
+                <Button 
+                  className="mt-3 bg-gradient-to-r from-primary to-orange-500 hover:opacity-90"
+                  onClick={generateAISuggestion}
+                  disabled={loadingSuggestion}
+                >
+                  {loadingSuggestion ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Génération...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="mr-2 h-4 w-4" />
+                      Obtenir un conseil IA
+                    </>
+                  )}
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Charts Row */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
