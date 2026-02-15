@@ -294,9 +294,19 @@ function App() {
   return (
     <ThemeProvider>
       <CurrencyProvider>
-        <AccessProvider>
-          <AccessGate />
-        </AccessProvider>
+        <BrowserRouter>
+          <Routes>
+            {/* Public route for email action - outside of access gate */}
+            <Route path="/access-action" element={<AccessActionPage />} />
+            
+            {/* All other routes go through access gate */}
+            <Route path="/*" element={
+              <AccessProvider>
+                <AccessGate />
+              </AccessProvider>
+            } />
+          </Routes>
+        </BrowserRouter>
       </CurrencyProvider>
     </ThemeProvider>
   );
