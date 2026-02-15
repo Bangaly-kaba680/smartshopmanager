@@ -1,18 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { useAuth, useTheme, useAccess } from '@/App';
+import { useAuth, useTheme } from '@/App';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Badge } from '@/components/ui/badge';
 import { 
   LayoutDashboard, Store, Users, Package, Boxes, ShoppingCart, 
-  DollarSign, Brain, Megaphone, CreditCard, HelpCircle, Settings,
-  LogOut, Sun, Moon, Menu, X, ChevronLeft, Shield, Bell
+  DollarSign, Brain, Megaphone, HelpCircle, Settings,
+  LogOut, Sun, Moon, Menu, X, ChevronLeft, Shield
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import axios from 'axios';
-
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 
 const menuItems = [
   { path: '/dashboard', icon: LayoutDashboard, label: 'Dashboard', roles: ['ceo', 'manager', 'cashier', 'stock_manager'] },
