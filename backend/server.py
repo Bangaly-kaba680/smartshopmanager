@@ -1315,7 +1315,7 @@ async def generate_contract(request: AIContractRequest):
     prompt = f"""Génère un contrat de travail professionnel en français pour:
     - Employé: {employee['name']}
     - Poste: {employee['position']}
-    - Salaire: {employee['salary']} FCFA/mois
+    - Salaire: {employee['salary']} GNF/mois
     - Type de contrat: {employee['contract_type']}
     - Entreprise: {shop.get('name', 'StartupManager Pro')}
     - Adresse: {shop.get('address', 'Dakar, Sénégal')}
@@ -1499,7 +1499,7 @@ async def generate_product_ad(request: AIMarketingRequest):
     prompt = f"""Génère du contenu marketing professionnel en français pour une publicité produit:
     - Titre: {request.title}
     - Description: {request.description}
-    - Prix: {request.price} FCFA
+    - Prix: {request.price} GNF
     
     Génère:
     1. Un texte pour Facebook (max 200 mots, engageant, avec emojis appropriés)
@@ -1590,7 +1590,7 @@ async def get_ai_dashboard_insights():
             "type": "info",
             "icon": "📊",
             "title": "Performance Ventes",
-            "message": f"Panier moyen: {avg_sale:,.0f} FCFA sur {total_sales} ventes",
+            "message": f"Panier moyen: {avg_sale:,.0f} GNF sur {total_sales} ventes",
             "action": None
         })
     
@@ -1759,7 +1759,7 @@ async def initiate_orange_payment(payment: PaymentInitiate):
     return PaymentResponse(
         status="pending",
         transaction_id=transaction_id,
-        message=f"Paiement Orange Money de {payment.amount:,.0f} FCFA initié. Veuillez confirmer sur votre téléphone {payment.phone}.",
+        message=f"Paiement Orange Money de {payment.amount:,.0f} GNF initié. Veuillez confirmer sur votre téléphone {payment.phone}.",
         details={
             "phone": payment.phone,
             "amount": payment.amount,
@@ -1783,7 +1783,7 @@ async def confirm_orange_payment(transaction_id: str):
     return PaymentResponse(
         status="success",
         transaction_id=transaction_id,
-        message=f"Paiement Orange Money de {payment['amount']:,.0f} FCFA confirmé avec succès!",
+        message=f"Paiement Orange Money de {payment['amount']:,.0f} GNF confirmé avec succès!",
         details={"receipt_number": f"REC-{str(uuid.uuid4())[:6].upper()}"}
     )
 
@@ -1806,7 +1806,7 @@ async def process_card_payment(payment: PaymentInitiate):
     return PaymentResponse(
         status="success",
         transaction_id=transaction_id,
-        message=f"Paiement par carte de {payment.amount:,.0f} FCFA traité avec succès.",
+        message=f"Paiement par carte de {payment.amount:,.0f} GNF traité avec succès.",
         details={
             "card_type": "VISA",
             "last_four": "****4242",
@@ -1833,7 +1833,7 @@ async def process_cash_payment(payment: PaymentInitiate):
     return PaymentResponse(
         status="success",
         transaction_id=transaction_id,
-        message=f"Paiement en espèces de {payment.amount:,.0f} FCFA enregistré.",
+        message=f"Paiement en espèces de {payment.amount:,.0f} GNF enregistré.",
         details={"receipt_number": f"REC-{str(uuid.uuid4())[:6].upper()}"}
     )
 
@@ -1878,7 +1878,7 @@ async def send_whatsapp_receipt(data: WhatsAppReceipt):
             "total": sale["total"],
             "items_count": len(items),
             "date": sale["created_at"],
-            "preview": f"🧾 *Reçu StartupManager Pro*\nTotal: {sale['total']:,.0f} FCFA\nDate: {sale['created_at'][:10]}\nMerci de votre achat!"
+            "preview": f"🧾 *Reçu StartupManager Pro*\nTotal: {sale['total']:,.0f} GNF\nDate: {sale['created_at'][:10]}\nMerci de votre achat!"
         }
     }
 
@@ -1898,7 +1898,7 @@ async def send_sms_receipt(data: WhatsAppReceipt):
             "sale_id": data.sale_id,
             "total": sale["total"],
             "date": sale["created_at"],
-            "preview": f"StartupManager Pro - Reçu: {sale['total']:,.0f} FCFA. Merci!"
+            "preview": f"StartupManager Pro - Reçu: {sale['total']:,.0f} GNF. Merci!"
         }
     }
 
@@ -1986,7 +1986,7 @@ async def export_sales_pdf():
     p.setFont("Helvetica-Bold", 10)
     p.drawString(2*cm, y, "Date")
     p.drawString(5*cm, y, "Méthode")
-    p.drawString(9*cm, y, "Total (FCFA)")
+    p.drawString(9*cm, y, "Total (GNF)")
     p.drawString(13*cm, y, "ID Transaction")
     
     # Table content
@@ -2011,7 +2011,7 @@ async def export_sales_pdf():
     # Summary
     y -= 1*cm
     p.setFont("Helvetica-Bold", 12)
-    p.drawString(2*cm, y, f"Total des ventes: {total_revenue:,.0f} FCFA")
+    p.drawString(2*cm, y, f"Total des ventes: {total_revenue:,.0f} GNF")
     p.drawString(2*cm, y - 0.5*cm, f"Nombre de transactions: {len(sales)}")
     
     p.save()
@@ -2028,7 +2028,7 @@ async def export_products_csv():
     """Export products as CSV"""
     products = list(products_col().find())
     
-    csv_content = "ID,Nom,Catégorie,Prix (FCFA),Stock,Date Création\n"
+    csv_content = "ID,Nom,Catégorie,Prix (GNF),Stock,Date Création\n"
     for prod in products:
         prod = serialize_doc(prod)
         stock = sum(b["quantity"] for b in batches_col().find({"product_id": prod["id"]}))
@@ -2047,7 +2047,7 @@ async def export_employees_csv():
     """Export employees as CSV"""
     employees = list(employees_col().find())
     
-    csv_content = "ID,Nom,Poste,Salaire (FCFA),Type Contrat\n"
+    csv_content = "ID,Nom,Poste,Salaire (GNF),Type Contrat\n"
     for emp in employees:
         emp = serialize_doc(emp)
         csv_content += f'"{emp["id"][:8]}","{emp["name"]}","{emp["position"]}",{emp["salary"]},"{emp["contract_type"]}"\n'

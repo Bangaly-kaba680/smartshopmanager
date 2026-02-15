@@ -15,7 +15,7 @@ import {
 import { toast } from 'sonner';
 
 const formatCurrency = (value) => {
-  return new Intl.NumberFormat('fr-FR', { style: 'decimal' }).format(value) + ' FCFA';
+  return new Intl.NumberFormat('fr-FR', { style: 'decimal' }).format(value) + ' GNF';
 };
 
 const POSPage = () => {

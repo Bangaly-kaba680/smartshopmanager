@@ -15,7 +15,7 @@ import { toast } from 'sonner';
 import { useAuth } from '@/App';
 
 const formatCurrency = (value) => {
-  return new Intl.NumberFormat('fr-FR', { style: 'decimal' }).format(value) + ' FCFA';
+  return new Intl.NumberFormat('fr-FR', { style: 'decimal' }).format(value) + ' GNF';
 };
 
 const ProductsPage = () => {
@@ -261,7 +261,7 @@ const ProductsPage = () => {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="price">Prix (FCFA)</Label>
+              <Label htmlFor="price">Prix (GNF)</Label>
               <Input
                 id="price"
                 type="number"

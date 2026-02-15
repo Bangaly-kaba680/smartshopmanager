@@ -120,7 +120,7 @@ const MarketingIAPage = () => {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="price">Prix (FCFA)</Label>
+                    <Label htmlFor="price">Prix (GNF)</Label>
                     <Input
                       id="price"
                       type="number"

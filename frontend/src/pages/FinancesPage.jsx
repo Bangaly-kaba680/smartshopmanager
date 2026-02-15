@@ -12,7 +12,7 @@ import { toast } from 'sonner';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 
 const formatCurrency = (value) => {
-  return new Intl.NumberFormat('fr-FR', { style: 'decimal' }).format(value) + ' FCFA';
+  return new Intl.NumberFormat('fr-FR', { style: 'decimal' }).format(value) + ' GNF';
 };
 
 const FinancesPage = () => {

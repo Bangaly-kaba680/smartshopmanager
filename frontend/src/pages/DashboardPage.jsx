@@ -47,7 +47,7 @@ const StatCard = ({ title, value, icon: Icon, trend, trendValue, color = 'primar
 };
 
 const formatCurrency = (value) => {
-  return new Intl.NumberFormat('fr-FR', { style: 'decimal' }).format(value) + ' FCFA';
+  return new Intl.NumberFormat('fr-FR', { style: 'decimal' }).format(value) + ' GNF';
 };
 
 const AIInsightCard = ({ insight }) => {

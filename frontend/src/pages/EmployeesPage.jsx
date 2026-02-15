@@ -14,7 +14,7 @@ import { toast } from 'sonner';
 import { useAuth } from '@/App';
 
 const formatCurrency = (value) => {
-  return new Intl.NumberFormat('fr-FR', { style: 'decimal' }).format(value) + ' FCFA';
+  return new Intl.NumberFormat('fr-FR', { style: 'decimal' }).format(value) + ' GNF';
 };
 
 const EmployeesPage = () => {
@@ -294,7 +294,7 @@ const EmployeesPage = () => {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="salary">Salaire mensuel (FCFA)</Label>
+              <Label htmlFor="salary">Salaire mensuel (GNF)</Label>
               <Input
                 id="salary"
                 type="number"
