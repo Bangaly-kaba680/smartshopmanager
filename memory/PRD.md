@@ -114,6 +114,23 @@ Système complet de gestion de startup avec:
 - [x] Notifications (UI)
 - [x] Déconnexion
 
+### Système de Contrôle d'Accès (Feb 15, 2026)
+- [x] Page de demande d'accès pour nouveaux utilisateurs
+- [x] Notifications email à l'admin (Resend API)
+- [x] Boutons d'action dans l'email (Permanent, 20 Minutes, Refuser) ✅ FONCTIONNEL
+- [x] Vérification d'accès automatique
+- [x] Expiration d'accès temporaire avec countdown
+- [x] Page de gestion des accès pour admin
+
+### Intégration AI OpenAI GPT-5.2 (Feb 15, 2026)
+- [x] Génération de contrats de travail ✅ FONCTIONNEL
+- [x] Génération d'attestations de travail ✅ FONCTIONNEL
+- [x] Génération d'attestations de stage ✅ FONCTIONNEL
+- [x] Génération de publicités produits ✅ FONCTIONNEL
+- [x] Génération d'offres d'emploi ✅ FONCTIONNEL
+- [x] Assistant IA du centre d'aide ✅ FONCTIONNEL
+- [x] Insights dashboard avec suggestions IA
+
 ## Prioritized Backlog
 
 ### P0 - Critical (Done)
@@ -122,9 +139,12 @@ Système complet de gestion de startup avec:
 - [x] POS functionality
 - [x] Products CRUD
 - [x] Stock management
+- [x] Email notifications (Resend)
+- [x] AI Integration (OpenAI GPT-5.2)
+- [x] Access control system
 
 ### P1 - High Priority
-- [ ] Real PostgreSQL database migration
+- [ ] Real PostgreSQL database migration (données perdues au redémarrage actuellement)
 - [ ] Real Orange Money integration
 - [ ] Real WhatsApp integration (Twilio/Meta)
 - [ ] File upload for product images
@@ -133,7 +153,7 @@ Système complet de gestion de startup avec:
 ### P2 - Medium Priority
 - [ ] Multi-boutique support complet
 - [ ] Gestion des promotions
-- [ ] Alertes stock faible
+- [ ] Alertes stock faible automatiques
 - [ ] Historique des modifications
 - [ ] Recherche avancée avec filtres
 
@@ -144,9 +164,20 @@ Système complet de gestion de startup avec:
 - [ ] Multi-devise
 - [ ] Rapports personnalisés
 
+## Credentials
+| Role  | Email               | Password   | Notes                                 |
+| :---- | :------------------ | :--------- | :------------------------------------ |
+| Admin | `admin@startup.com` | `admin123` | Compte démo principal                 |
+| Owner | `bangalykaba635@gmail.com` | N/A | Super-admin (accès automatique)       |
+
 ## Next Tasks
-1. Tester la génération IA avec un timeout plus long
+1. Migration vers PostgreSQL pour persistance des données
 2. Ajouter des images produits réelles
 3. Améliorer le responsive pour mobile
 4. Ajouter plus de guides dans le centre d'aide
 5. Implémenter l'historique des ventes détaillé
+
+## Known Limitations
+- **Database**: Utilise des dictionnaires Python en mémoire - toutes les données sont perdues au redémarrage du serveur
+- **Payments**: Orange Money et paiements par carte sont simulés (mock)
+- **WhatsApp/SMS**: Envoi de reçus simulé
