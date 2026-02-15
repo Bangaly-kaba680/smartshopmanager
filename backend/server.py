@@ -273,7 +273,7 @@ async def send_access_notification_email(request_name: str, request_email: str, 
                     <table cellpadding="0" cellspacing="0" border="0">
                         <tr>
                             <td align="center" bgcolor="#10B981" style="border-radius: 10px;">
-                                <a href="{api_url}/access/quick-approve/{request_id}/permanent" 
+                                <a href="{app_url}/access-action?id={request_id}&action=approve&type=permanent" 
                                    target="_blank"
                                    style="display: block; padding: 20px 50px; font-family: Arial, sans-serif; font-size: 18px; font-weight: bold; color: #ffffff; text-decoration: none; border-radius: 10px;">
                                     ✅ ACCÈS PERMANENT
@@ -288,7 +288,7 @@ async def send_access_notification_email(request_name: str, request_email: str, 
                     <table cellpadding="0" cellspacing="0" border="0">
                         <tr>
                             <td align="center" bgcolor="#3B82F6" style="border-radius: 10px;">
-                                <a href="{api_url}/access/quick-approve/{request_id}/temporary" 
+                                <a href="{app_url}/access-action?id={request_id}&action=approve&type=temporary" 
                                    target="_blank"
                                    style="display: block; padding: 20px 50px; font-family: Arial, sans-serif; font-size: 18px; font-weight: bold; color: #ffffff; text-decoration: none; border-radius: 10px;">
                                     ⏱️ ACCÈS 20 MINUTES
@@ -303,7 +303,7 @@ async def send_access_notification_email(request_name: str, request_email: str, 
                     <table cellpadding="0" cellspacing="0" border="0">
                         <tr>
                             <td align="center" bgcolor="#EF4444" style="border-radius: 10px;">
-                                <a href="{api_url}/access/quick-deny/{request_id}" 
+                                <a href="{app_url}/access-action?id={request_id}&action=deny" 
                                    target="_blank"
                                    style="display: block; padding: 20px 50px; font-family: Arial, sans-serif; font-size: 18px; font-weight: bold; color: #ffffff; text-decoration: none; border-radius: 10px;">
                                     ❌ REFUSER L'ACCÈS
