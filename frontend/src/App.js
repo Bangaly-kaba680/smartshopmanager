@@ -306,6 +306,9 @@ function App() {
                   <Route path="/help" element={<ProtectedRoute><HelpCenterPage /></ProtectedRoute>} />
                   <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
                   
+                  {/* Security Admin - Super Admin Only */}
+                  <Route path="/security" element={<ProtectedRoute requireCEO><SecurityAdminPage /></ProtectedRoute>} />
+                  
                   {/* Default redirect */}
                   <Route path="/" element={<Navigate to="/login" replace />} />
                   <Route path="*" element={<Navigate to="/dashboard" replace />} />
