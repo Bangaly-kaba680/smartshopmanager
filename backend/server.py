@@ -221,6 +221,10 @@ async def request_access(request: AccessRequest):
 @api_router.get("/access/check/{email}")
 async def check_access(email: str):
     """Check if an email has access"""
+    # Admin always has access
+    if email.lower() == ADMIN_EMAIL.lower():
+        return {"authorized": True, "access_type": "permanent", "is_admin": True}
+    
     for auth in db_authorized_users.values():
         if auth["email"] == email:
             if auth["access_type"] == "permanent":
