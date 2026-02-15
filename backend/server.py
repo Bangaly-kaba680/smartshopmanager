@@ -153,6 +153,173 @@ init_demo_data()
 # PYDANTIC MODELS
 # ========================
 
+# Access Control System
+db_access_requests = {}  # Pending access requests
+db_authorized_users = {}  # Authorized users
+ADMIN_EMAIL = "bangalykaba635@gmail.com"
+
+# Access Request Models
+class AccessRequest(BaseModel):
+    name: str
+    email: EmailStr
+    reason: Optional[str] = None
+
+class AccessRequestResponse(BaseModel):
+    id: str
+    name: str
+    email: str
+    reason: Optional[str] = None
+    status: str  # pending, approved, denied
+    access_type: Optional[str] = None  # permanent, temporary
+    expires_at: Optional[str] = None
+    created_at: str
+
+class ApproveAccess(BaseModel):
+    access_type: str  # permanent, temporary
+
+# ========================
+# ACCESS CONTROL ROUTES
+# ========================
+
+@api_router.post("/access/request")
+async def request_access(request: AccessRequest):
+    """Request access to the application"""
+    # Check if already authorized
+    for auth in db_authorized_users.values():
+        if auth["email"] == request.email:
+            if auth["access_type"] == "permanent" or \
+               (auth["expires_at"] and datetime.fromisoformat(auth["expires_at"]) > datetime.now(timezone.utc)):
+                return {"status": "already_authorized", "message": "Vous avez déjà accès à l'application"}
+    
+    # Check if request already pending
+    for req in db_access_requests.values():
+        if req["email"] == request.email and req["status"] == "pending":
+            return {"status": "pending", "message": "Votre demande est en cours de traitement"}
+    
+    request_id = str(uuid.uuid4())
+    db_access_requests[request_id] = {
+        "id": request_id,
+        "name": request.name,
+        "email": request.email,
+        "reason": request.reason,
+        "status": "pending",
+        "access_type": None,
+        "expires_at": None,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    return {
+        "status": "submitted",
+        "message": "Demande envoyée! Bangaly Kaba va examiner votre demande.",
+        "request_id": request_id
+    }
+
+@api_router.get("/access/check/{email}")
+async def check_access(email: str):
+    """Check if an email has access"""
+    for auth in db_authorized_users.values():
+        if auth["email"] == email:
+            if auth["access_type"] == "permanent":
+                return {"authorized": True, "access_type": "permanent"}
+            elif auth["expires_at"]:
+                expires = datetime.fromisoformat(auth["expires_at"])
+                if expires > datetime.now(timezone.utc):
+                    remaining = (expires - datetime.now(timezone.utc)).total_seconds()
+                    return {
+                        "authorized": True, 
+                        "access_type": "temporary",
+                        "remaining_seconds": int(remaining)
+                    }
+                else:
+                    # Access expired, remove it
+                    del db_authorized_users[auth["id"]]
+                    return {"authorized": False, "message": "Accès expiré"}
+    
+    # Check pending requests
+    for req in db_access_requests.values():
+        if req["email"] == email and req["status"] == "pending":
+            return {"authorized": False, "status": "pending"}
+    
+    return {"authorized": False}
+
+@api_router.get("/access/requests")
+async def get_access_requests():
+    """Get all access requests (Admin only)"""
+    return list(db_access_requests.values())
+
+@api_router.get("/access/authorized")
+async def get_authorized_users():
+    """Get all authorized users (Admin only)"""
+    # Clean expired temporary accesses
+    expired = []
+    for auth_id, auth in db_authorized_users.items():
+        if auth["access_type"] == "temporary" and auth["expires_at"]:
+            if datetime.fromisoformat(auth["expires_at"]) < datetime.now(timezone.utc):
+                expired.append(auth_id)
+    for auth_id in expired:
+        del db_authorized_users[auth_id]
+    
+    return list(db_authorized_users.values())
+
+@api_router.put("/access/approve/{request_id}")
+async def approve_access(request_id: str, approval: ApproveAccess):
+    """Approve an access request (Admin only)"""
+    if request_id not in db_access_requests:
+        raise HTTPException(status_code=404, detail="Demande non trouvée")
+    
+    request = db_access_requests[request_id]
+    request["status"] = "approved"
+    request["access_type"] = approval.access_type
+    
+    if approval.access_type == "temporary":
+        expires = datetime.now(timezone.utc) + timedelta(minutes=20)
+        request["expires_at"] = expires.isoformat()
+    
+    # Add to authorized users
+    auth_id = str(uuid.uuid4())
+    db_authorized_users[auth_id] = {
+        "id": auth_id,
+        "name": request["name"],
+        "email": request["email"],
+        "access_type": approval.access_type,
+        "expires_at": request.get("expires_at"),
+        "approved_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    return {"status": "approved", "message": f"Accès {approval.access_type} accordé"}
+
+@api_router.put("/access/deny/{request_id}")
+async def deny_access(request_id: str):
+    """Deny an access request (Admin only)"""
+    if request_id not in db_access_requests:
+        raise HTTPException(status_code=404, detail="Demande non trouvée")
+    
+    db_access_requests[request_id]["status"] = "denied"
+    return {"status": "denied", "message": "Accès refusé"}
+
+@api_router.delete("/access/revoke/{email}")
+async def revoke_access(email: str):
+    """Revoke access for a user (Admin only)"""
+    revoked = False
+    to_delete = []
+    for auth_id, auth in db_authorized_users.items():
+        if auth["email"] == email:
+            to_delete.append(auth_id)
+            revoked = True
+    
+    for auth_id in to_delete:
+        del db_authorized_users[auth_id]
+    
+    if revoked:
+        return {"status": "revoked", "message": "Accès révoqué"}
+    raise HTTPException(status_code=404, detail="Utilisateur non trouvé")
+
+@api_router.get("/access/pending-count")
+async def get_pending_count():
+    """Get count of pending requests"""
+    count = sum(1 for req in db_access_requests.values() if req["status"] == "pending")
+    return {"count": count}
+
 # Auth Models
 class UserRegister(BaseModel):
     name: str
