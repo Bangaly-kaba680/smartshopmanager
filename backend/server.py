@@ -995,6 +995,244 @@ async def action_deny_access(data: AccessActionDeny):
     }
 
 # ========================
+# SECURITY & WHITELIST ROUTES
+# ========================
+
+@api_router.get("/security/whitelist")
+async def get_whitelist_users():
+    """Get all whitelisted users (Super Admin only)"""
+    return get_whitelist()
+
+@api_router.post("/security/whitelist")
+async def add_whitelist_user(data: WhitelistAdd):
+    """Add user to whitelist (Super Admin only)"""
+    entry = add_to_whitelist(
+        email=data.email,
+        name=data.name,
+        role=data.role,
+        approved_by=SUPER_ADMIN_EMAIL
+    )
+    log_action(SUPER_ADMIN_EMAIL, 'whitelist_add', 'whitelist', entry['id'], {'email': data.email, 'role': data.role})
+    return {"status": "added", "entry": entry}
+
+@api_router.delete("/security/whitelist/{email}")
+async def remove_whitelist_user(email: str):
+    """Remove user from whitelist (Super Admin only)"""
+    if is_super_admin(email):
+        raise HTTPException(status_code=403, detail="Impossible de retirer le Super Admin")
+    
+    success = remove_from_whitelist(email)
+    if success:
+        log_action(SUPER_ADMIN_EMAIL, 'whitelist_remove', 'whitelist', None, {'email': email})
+        return {"status": "removed"}
+    raise HTTPException(status_code=404, detail="Utilisateur non trouvé")
+
+@api_router.get("/security/check-access/{email}")
+async def check_user_access(email: str):
+    """Check if email has access"""
+    if is_blocked(email):
+        return {"has_access": False, "reason": "blocked"}
+    
+    result = is_whitelisted(email)
+    if result['whitelisted']:
+        return {
+            "has_access": True,
+            "role": result['role'],
+            "name": result.get('name'),
+            "is_super_admin": is_super_admin(email)
+        }
+    return {"has_access": False, "reason": "not_whitelisted"}
+
+@api_router.post("/security/request-access")
+async def request_access(request: Request, data: AccessRequest):
+    """Request access to the application - sends notification to Super Admin"""
+    email = data.email.lower()
+    
+    # Check if already has access
+    if is_whitelisted(email)['whitelisted']:
+        return {"status": "already_authorized", "message": "Vous avez déjà accès"}
+    
+    # Check if blocked
+    if is_blocked(email):
+        return {"status": "blocked", "message": "Accès bloqué. Contactez l'administrateur."}
+    
+    # Log the attempt
+    ip_address = request.client.host if request.client else None
+    user_agent = request.headers.get('user-agent')
+    
+    attempt = log_access_attempt(
+        email=email,
+        name=data.name,
+        ip_address=ip_address,
+        user_agent=user_agent
+    )
+    
+    # Send notification email to Super Admin
+    await send_access_request_notification(
+        name=data.name,
+        email=email,
+        attempt_id=attempt['id'],
+        ip_address=ip_address
+    )
+    
+    return {
+        "status": "pending",
+        "message": "Votre demande a été envoyée à l'administrateur. Vous serez notifié par email.",
+        "attempt_id": attempt['id']
+    }
+
+@api_router.get("/security/pending-requests")
+async def get_pending_access_requests():
+    """Get pending access requests (Super Admin only)"""
+    return get_pending_attempts()
+
+@api_router.post("/security/approve-request")
+async def approve_access_request(data: ApproveAccessRequest):
+    """Approve an access request (Super Admin only)"""
+    result = approve_attempt(data.attempt_id, data.role)
+    if result:
+        log_action(SUPER_ADMIN_EMAIL, 'access_approved', 'access_request', data.attempt_id, result)
+        return result
+    raise HTTPException(status_code=404, detail="Demande non trouvée")
+
+@api_router.post("/security/deny-request/{attempt_id}")
+async def deny_access_request(attempt_id: str):
+    """Deny an access request (Super Admin only)"""
+    result = deny_attempt(attempt_id)
+    if result:
+        log_action(SUPER_ADMIN_EMAIL, 'access_denied', 'access_request', attempt_id, {})
+        return result
+    raise HTTPException(status_code=404, detail="Demande non trouvée")
+
+@api_router.post("/security/block")
+async def block_user_endpoint(data: BlockUser):
+    """Block a user (CEO/Super Admin only)"""
+    if is_super_admin(data.email):
+        raise HTTPException(status_code=403, detail="Impossible de bloquer le Super Admin")
+    
+    entry = block_user(data.email, SUPER_ADMIN_EMAIL, data.reason)
+    log_action(SUPER_ADMIN_EMAIL, 'user_blocked', 'blocked_users', entry['id'], {'email': data.email})
+    
+    # Invalidate all sessions for this user
+    invalidate_all_user_sessions(data.email)
+    
+    return {"status": "blocked", "entry": entry}
+
+@api_router.post("/security/unblock/{email}")
+async def unblock_user_endpoint(email: str):
+    """Unblock a user (CEO/Super Admin only)"""
+    success = unblock_user(email)
+    if success:
+        log_action(SUPER_ADMIN_EMAIL, 'user_unblocked', 'blocked_users', None, {'email': email})
+        return {"status": "unblocked"}
+    raise HTTPException(status_code=404, detail="Utilisateur non trouvé dans la liste des bloqués")
+
+@api_router.get("/security/blocked-users")
+async def get_blocked_users_list():
+    """Get all blocked users (CEO/Super Admin only)"""
+    return get_blocked_users()
+
+@api_router.get("/security/audit-log")
+async def get_audit_log_entries(limit: int = 100, user_email: Optional[str] = None):
+    """Get audit log entries (CEO/Super Admin only)"""
+    return get_audit_log(limit=limit, user_email=user_email)
+
+@api_router.get("/security/roles")
+async def get_available_roles():
+    """Get available roles and their permissions"""
+    return ROLE_PERMISSIONS
+
+async def send_access_request_notification(name: str, email: str, attempt_id: str, ip_address: str = None):
+    """Send email notification to Super Admin for access request"""
+    try:
+        if not resend.api_key:
+            logging.warning("Resend API key not configured")
+            return False
+        
+        app_url = os.environ.get('APP_URL', 'https://startup-manager-4.preview.emergentagent.com')
+        
+        html_content = f"""
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"></head>
+<body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background: #f5f5f5;">
+    <div style="background: linear-gradient(135deg, #6366f1, #f97316); padding: 20px; border-radius: 12px 12px 0 0; text-align: center;">
+        <h1 style="color: white; margin: 0;">🔔 Demande d'Accès</h1>
+        <p style="color: rgba(255,255,255,0.9); margin: 5px 0 0;">StartupManager Pro</p>
+    </div>
+    
+    <div style="background: white; padding: 25px; border-radius: 0 0 12px 12px;">
+        <p style="color: #333;">Bonjour <strong>Bangaly Kaba</strong>,</p>
+        <p style="color: #666;">Une nouvelle personne souhaite accéder à votre application :</p>
+        
+        <div style="background: #f8f9fa; border-left: 4px solid #6366f1; padding: 15px; margin: 20px 0;">
+            <p style="margin: 5px 0;"><strong>👤 Nom :</strong> {name}</p>
+            <p style="margin: 5px 0;"><strong>📧 Email :</strong> {email}</p>
+            <p style="margin: 5px 0;"><strong>🌐 IP :</strong> {ip_address or 'Non disponible'}</p>
+            <p style="margin: 5px 0;"><strong>📅 Date :</strong> {datetime.now().strftime('%d/%m/%Y %H:%M')}</p>
+        </div>
+        
+        <p style="text-align: center; font-weight: bold; margin: 25px 0 15px;">Quelle permission accorder ?</p>
+        
+        <table width="100%" cellpadding="0" cellspacing="0">
+            <tr>
+                <td align="center" style="padding: 8px;">
+                    <a href="{app_url}/admin/approve?id={attempt_id}&role=viewer" 
+                       style="display: inline-block; padding: 15px 30px; background: #10B981; color: white; text-decoration: none; border-radius: 8px; font-weight: bold;">
+                        👁️ Lecture Seule
+                    </a>
+                </td>
+            </tr>
+            <tr>
+                <td align="center" style="padding: 8px;">
+                    <a href="{app_url}/admin/approve?id={attempt_id}&role=cashier" 
+                       style="display: inline-block; padding: 15px 30px; background: #3B82F6; color: white; text-decoration: none; border-radius: 8px; font-weight: bold;">
+                        💰 Caissier
+                    </a>
+                </td>
+            </tr>
+            <tr>
+                <td align="center" style="padding: 8px;">
+                    <a href="{app_url}/admin/approve?id={attempt_id}&role=manager" 
+                       style="display: inline-block; padding: 15px 30px; background: #8B5CF6; color: white; text-decoration: none; border-radius: 8px; font-weight: bold;">
+                        👔 Manager
+                    </a>
+                </td>
+            </tr>
+            <tr>
+                <td align="center" style="padding: 8px;">
+                    <a href="{app_url}/admin/deny?id={attempt_id}" 
+                       style="display: inline-block; padding: 15px 30px; background: #EF4444; color: white; text-decoration: none; border-radius: 8px; font-weight: bold;">
+                        ❌ Refuser
+                    </a>
+                </td>
+            </tr>
+        </table>
+        
+        <p style="color: #999; font-size: 12px; text-align: center; margin-top: 25px; border-top: 1px solid #eee; padding-top: 15px;">
+            Vous êtes le Super Admin de StartupManager Pro.<br>
+            Toutes les actions sont enregistrées dans le journal d'audit.
+        </p>
+    </div>
+</body>
+</html>
+        """
+        
+        params = {
+            "from": SENDER_EMAIL,
+            "to": [SUPER_ADMIN_EMAIL],
+            "subject": f"🔔 Demande d'accès: {name} ({email})",
+            "html": html_content
+        }
+        
+        result = await asyncio.to_thread(resend.Emails.send, params)
+        logging.info(f"Access request notification sent: {result}")
+        return True
+    except Exception as e:
+        logging.error(f"Failed to send access notification: {e}")
+        return False
+
+# ========================
 # AUTH ROUTES
 # ========================
 
