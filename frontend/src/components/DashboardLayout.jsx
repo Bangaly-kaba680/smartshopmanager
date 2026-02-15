@@ -12,6 +12,7 @@ import { cn } from '@/lib/utils';
 
 const menuItems = [
   { path: '/dashboard', icon: LayoutDashboard, label: 'Dashboard', roles: ['ceo', 'manager', 'cashier', 'stock_manager'] },
+  { path: '/access-control', icon: Shield, label: 'Contrôle Accès', roles: ['ceo'], adminOnly: true },
   { path: '/shops', icon: Store, label: 'Boutiques', roles: ['ceo'] },
   { path: '/employees', icon: Users, label: 'Employés', roles: ['ceo', 'manager'] },
   { path: '/products', icon: Package, label: 'Produits', roles: ['ceo', 'manager', 'cashier', 'stock_manager'] },
