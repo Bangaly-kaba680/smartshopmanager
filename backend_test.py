@@ -11,7 +11,7 @@ from datetime import datetime
 from typing import Dict, Any, Optional
 
 class StartupManagerAPITester:
-    def __init__(self, base_url="https://shopflow-208.preview.emergentagent.com"):
+    def __init__(self, base_url="https://startup-manager-4.preview.emergentagent.com"):
         self.base_url = base_url
         self.api_base = f"{base_url}/api"
         self.token = None
