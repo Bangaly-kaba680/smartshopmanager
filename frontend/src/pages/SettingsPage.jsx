@@ -1,16 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import DashboardLayout from '@/components/DashboardLayout';
 import { useAuth, useTheme } from '@/App';
+import { useCurrency } from '@/contexts/CurrencyContext';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { 
   Settings, User, Moon, Sun, Bell, Shield, 
   Globe, Palette, LogOut, Sparkles, RefreshCw, Loader2,
-  Zap, TrendingUp, Users, Package
+  Zap, TrendingUp, Users, Package, DollarSign
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -21,6 +23,7 @@ const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const SettingsPage = () => {
   const { user, logout } = useAuth();
   const { theme, toggleTheme } = useTheme();
+  const { currency, setCurrency, currencies } = useCurrency();
   const navigate = useNavigate();
   const [aiSuggestions, setAiSuggestions] = useState([]);
   const [loadingAI, setLoadingAI] = useState(false);
