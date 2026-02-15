@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import "@/App.css";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { Toaster } from "@/components/ui/sonner";
+import { CurrencyProvider } from "@/contexts/CurrencyContext";
 
 // Pages
 import AccessGatePage from "@/pages/AccessGatePage";
