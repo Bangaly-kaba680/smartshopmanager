@@ -508,6 +508,14 @@ class TokenResponse(BaseModel):
 class ForgotPassword(BaseModel):
     email: EmailStr
 
+# Access Action Models (for email links)
+class AccessActionApprove(BaseModel):
+    request_id: str
+    access_type: str = "permanent"
+
+class AccessActionDeny(BaseModel):
+    request_id: str
+
 # Shop Models
 class ShopCreate(BaseModel):
     name: str
