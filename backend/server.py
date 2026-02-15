@@ -411,6 +411,161 @@ async def deny_access(request_id: str):
     db_access_requests[request_id]["status"] = "denied"
     return {"status": "denied", "message": "Accès refusé"}
 
+# Quick action endpoints for email links (GET requests)
+@api_router.get("/access/quick-approve/{request_id}/{access_type}")
+async def quick_approve_access(request_id: str, access_type: str):
+    """Quick approve from email link - returns HTML page"""
+    if request_id not in db_access_requests:
+        return HTMLResponse(content=get_result_page("error", "Demande non trouvée ou déjà traitée"), status_code=404)
+    
+    request = db_access_requests[request_id]
+    
+    if request["status"] != "pending":
+        return HTMLResponse(content=get_result_page("info", f"Cette demande a déjà été traitée ({request['status']})"))
+    
+    request["status"] = "approved"
+    request["access_type"] = access_type
+    
+    if access_type == "temporary":
+        expires = datetime.now(timezone.utc) + timedelta(minutes=20)
+        request["expires_at"] = expires.isoformat()
+    
+    # Add to authorized users
+    auth_id = str(uuid.uuid4())
+    db_authorized_users[auth_id] = {
+        "id": auth_id,
+        "name": request["name"],
+        "email": request["email"],
+        "access_type": access_type,
+        "expires_at": request.get("expires_at"),
+        "approved_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    access_label = "PERMANENT" if access_type == "permanent" else "20 MINUTES"
+    return HTMLResponse(content=get_result_page(
+        "success", 
+        f"Accès {access_label} accordé à {request['name']} ({request['email']})"
+    ))
+
+@api_router.get("/access/quick-deny/{request_id}")
+async def quick_deny_access(request_id: str):
+    """Quick deny from email link - returns HTML page"""
+    if request_id not in db_access_requests:
+        return HTMLResponse(content=get_result_page("error", "Demande non trouvée ou déjà traitée"), status_code=404)
+    
+    request = db_access_requests[request_id]
+    
+    if request["status"] != "pending":
+        return HTMLResponse(content=get_result_page("info", f"Cette demande a déjà été traitée ({request['status']})"))
+    
+    request["status"] = "denied"
+    
+    return HTMLResponse(content=get_result_page(
+        "denied", 
+        f"Accès REFUSÉ à {request['name']} ({request['email']})"
+    ))
+
+def get_result_page(status: str, message: str) -> str:
+    """Generate HTML result page for quick actions"""
+    colors = {
+        "success": ("#10B981", "✅"),
+        "denied": ("#EF4444", "❌"),
+        "error": ("#EF4444", "⚠️"),
+        "info": ("#3B82F6", "ℹ️")
+    }
+    color, icon = colors.get(status, ("#6366f1", "📋"))
+    
+    return f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>StartupManager Pro - Action Effectuée</title>
+        <style>
+            * {{ margin: 0; padding: 0; box-sizing: border-box; }}
+            body {{ 
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                background: linear-gradient(135deg, #1e1b4b 0%, #312e81 100%);
+                min-height: 100vh;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                padding: 20px;
+            }}
+            .card {{
+                background: white;
+                border-radius: 16px;
+                padding: 40px;
+                max-width: 500px;
+                width: 100%;
+                text-align: center;
+                box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);
+            }}
+            .icon {{
+                font-size: 64px;
+                margin-bottom: 20px;
+            }}
+            .title {{
+                font-size: 24px;
+                font-weight: 700;
+                color: #1f2937;
+                margin-bottom: 15px;
+            }}
+            .message {{
+                font-size: 16px;
+                color: #6b7280;
+                line-height: 1.6;
+                padding: 15px;
+                background: #f3f4f6;
+                border-radius: 8px;
+                border-left: 4px solid {color};
+            }}
+            .footer {{
+                margin-top: 30px;
+                padding-top: 20px;
+                border-top: 1px solid #e5e7eb;
+                color: #9ca3af;
+                font-size: 12px;
+            }}
+            .logo {{
+                display: inline-flex;
+                align-items: center;
+                gap: 8px;
+                margin-bottom: 30px;
+            }}
+            .logo-icon {{
+                width: 32px;
+                height: 32px;
+                background: linear-gradient(135deg, #6366f1 0%, #f97316 100%);
+                border-radius: 8px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                color: white;
+                font-weight: bold;
+                font-size: 12px;
+            }}
+        </style>
+    </head>
+    <body>
+        <div class="card">
+            <div class="logo">
+                <div class="logo-icon">BK</div>
+                <span style="font-weight: 600; color: #1f2937;">StartupManager Pro</span>
+            </div>
+            <div class="icon">{icon}</div>
+            <h1 class="title">Action Effectuée</h1>
+            <p class="message">{message}</p>
+            <div class="footer">
+                Vous pouvez fermer cette page.<br>
+                Développé par <strong>Bangaly Kaba</strong>
+            </div>
+        </div>
+    </body>
+    </html>
+    """
+
 @api_router.delete("/access/revoke/{email}")
 async def revoke_access(email: str):
     """Revoke access for a user (Admin only)"""
