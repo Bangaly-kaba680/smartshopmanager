@@ -155,3 +155,30 @@ code {
         display: none !important;
     }
 }
+
+/* Hide Emergent badge and replace with custom branding */
+[data-testid="emergent-badge"],
+.emergent-badge,
+div[class*="emergent"],
+iframe[src*="emergent"],
+div[style*="Made with Emergent"],
+div:has(> img[alt*="Emergent"]),
+div:has(> span:contains("Made with Emergent")) {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+}
+
+/* Override any fixed position emergent elements */
+body > div[style*="position: fixed"][style*="bottom"] {
+    display: none !important;
+}
+
+/* Custom Bangaly Kaba branding styles */
+.bangaly-brand {
+    background: linear-gradient(135deg, #6366f1 0%, #f97316 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    font-weight: 700;
+}
