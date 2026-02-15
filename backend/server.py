@@ -1433,6 +1433,185 @@ async def ai_help_assistant(request: AIHelpRequest):
     return {"response": content}
 
 # ========================
+# AI INSIGHTS & AUTO-UPDATE
+# ========================
+
+@api_router.get("/ai/insights/dashboard")
+async def get_ai_dashboard_insights():
+    """Generate AI insights for dashboard"""
+    # Gather data
+    total_sales = len(db_sales)
+    total_products = len(db_products)
+    total_employees = len(db_employees)
+    
+    low_stock_products = []
+    for prod_id, prod in db_products.items():
+        stock = sum(b["quantity"] for b in db_batches.values() if b["product_id"] == prod_id)
+        if stock < 10:
+            low_stock_products.append({"name": prod["name"], "stock": stock})
+    
+    total_revenue = sum(s["total"] for s in db_sales.values())
+    
+    # Generate insights
+    insights = []
+    
+    # Stock alerts
+    if low_stock_products:
+        products_list = ", ".join([p["name"] for p in low_stock_products[:3]])
+        insights.append({
+            "type": "warning",
+            "icon": "📦",
+            "title": "Stock Faible",
+            "message": f"{len(low_stock_products)} produit(s) en stock faible: {products_list}",
+            "action": "Réapprovisionner"
+        })
+    
+    # Sales performance
+    if total_sales > 0:
+        avg_sale = total_revenue / total_sales
+        insights.append({
+            "type": "info",
+            "icon": "📊",
+            "title": "Performance Ventes",
+            "message": f"Panier moyen: {avg_sale:,.0f} FCFA sur {total_sales} ventes",
+            "action": None
+        })
+    
+    # AI recommendation
+    if total_products < 10:
+        insights.append({
+            "type": "tip",
+            "icon": "💡",
+            "title": "Suggestion IA",
+            "message": "Ajoutez plus de produits pour diversifier votre offre et augmenter vos ventes",
+            "action": "Ajouter produits"
+        })
+    
+    if total_employees > 0 and total_sales == 0:
+        insights.append({
+            "type": "tip",
+            "icon": "🎯",
+            "title": "Conseil IA",
+            "message": "Aucune vente enregistrée. Utilisez le Marketing IA pour créer des publicités attractives",
+            "action": "Marketing IA"
+        })
+    
+    return {
+        "insights": insights,
+        "summary": {
+            "total_products": total_products,
+            "total_employees": total_employees,
+            "total_sales": total_sales,
+            "low_stock_count": len(low_stock_products)
+        },
+        "generated_at": datetime.now(timezone.utc).isoformat()
+    }
+
+@api_router.get("/ai/insights/stock")
+async def get_ai_stock_insights():
+    """Generate AI insights for stock management"""
+    insights = []
+    recommendations = []
+    
+    for prod_id, prod in db_products.items():
+        stock = sum(b["quantity"] for b in db_batches.values() if b["product_id"] == prod_id)
+        
+        if stock == 0:
+            insights.append({
+                "type": "critical",
+                "product": prod["name"],
+                "message": "Rupture de stock!",
+                "recommendation": "Commander immédiatement"
+            })
+        elif stock < 5:
+            insights.append({
+                "type": "warning", 
+                "product": prod["name"],
+                "message": f"Stock très faible ({stock} unités)",
+                "recommendation": "Réapprovisionner sous 48h"
+            })
+        elif stock < 15:
+            insights.append({
+                "type": "info",
+                "product": prod["name"],
+                "message": f"Stock à surveiller ({stock} unités)",
+                "recommendation": "Planifier réapprovisionnement"
+            })
+    
+    return {
+        "insights": insights,
+        "generated_at": datetime.now(timezone.utc).isoformat()
+    }
+
+@api_router.get("/ai/insights/sales")
+async def get_ai_sales_insights():
+    """Generate AI insights for sales"""
+    today = datetime.now(timezone.utc).date().isoformat()
+    
+    today_sales = [s for s in db_sales.values() if s["created_at"][:10] == today]
+    today_total = sum(s["total"] for s in today_sales)
+    
+    # Payment method breakdown
+    payment_methods = {}
+    for sale in db_sales.values():
+        method = sale["payment_method"]
+        payment_methods[method] = payment_methods.get(method, 0) + sale["total"]
+    
+    insights = []
+    
+    if len(today_sales) == 0:
+        insights.append({
+            "type": "info",
+            "icon": "📈",
+            "message": "Aucune vente aujourd'hui. Créez une promotion pour attirer les clients!"
+        })
+    else:
+        insights.append({
+            "type": "success",
+            "icon": "✅",
+            "message": f"{len(today_sales)} vente(s) aujourd'hui pour {today_total:,.0f} FCFA"
+        })
+    
+    # Most used payment method
+    if payment_methods:
+        top_method = max(payment_methods, key=payment_methods.get)
+        method_labels = {"cash": "Espèces", "orange_money": "Orange Money", "card": "Carte"}
+        insights.append({
+            "type": "info",
+            "icon": "💳",
+            "message": f"Mode de paiement préféré: {method_labels.get(top_method, top_method)}"
+        })
+    
+    return {
+        "insights": insights,
+        "today_sales": len(today_sales),
+        "today_revenue": today_total,
+        "payment_breakdown": payment_methods,
+        "generated_at": datetime.now(timezone.utc).isoformat()
+    }
+
+@api_router.post("/ai/generate-suggestion")
+async def generate_ai_suggestion(context: dict = None):
+    """Generate AI suggestion based on current context"""
+    prompt = f"""En tant qu'assistant IA pour StartupManager Pro, génère une suggestion utile et actionnable.
+    
+    Contexte actuel:
+    - Produits: {len(db_products)}
+    - Employés: {len(db_employees)}
+    - Ventes: {len(db_sales)}
+    - Boutiques: {len(db_shops)}
+    
+    Génère UNE suggestion courte (max 2 phrases) pour améliorer la performance de l'entreprise.
+    La suggestion doit être pratique et immédiatement applicable."""
+    
+    suggestion = await generate_ai_content(prompt, "Tu es un consultant business expert. Donne des conseils concis et pertinents.")
+    
+    return {
+        "suggestion": suggestion,
+        "generated_at": datetime.now(timezone.utc).isoformat()
+    }
+
+# ========================
 # ACCOUNTS/FINANCES ROUTES
 # ========================
 
