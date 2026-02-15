@@ -42,7 +42,13 @@ const AccessActionPage = () => {
           return;
         }
 
-        const data = await response.json();
+        const text = await response.text();
+        let data;
+        try {
+          data = JSON.parse(text);
+        } catch {
+          data = { detail: text };
+        }
 
         if (response.ok) {
           if (action === 'approve') {
