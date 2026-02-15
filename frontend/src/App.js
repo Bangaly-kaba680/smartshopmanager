@@ -280,9 +280,11 @@ const AccessGate = () => {
 function App() {
   return (
     <ThemeProvider>
-      <AccessProvider>
-        <AccessGate />
-      </AccessProvider>
+      <CurrencyProvider>
+        <AccessProvider>
+          <AccessGate />
+        </AccessProvider>
+      </CurrencyProvider>
     </ThemeProvider>
   );
 }
