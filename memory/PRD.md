@@ -33,9 +33,10 @@ Système complet de gestion de startup avec:
 - **Frontend**: React 19, Tailwind CSS, Shadcn UI
 - **Backend**: FastAPI (Python)
 - **Database**: In-memory (simulation PostgreSQL)
-- **AI**: OpenAI GPT-5.2 via Emergent LLM Key
+- **AI**: OpenAI GPT-5.2 via Emergent LLM Key ✅ FONCTIONNEL
+- **Email**: Resend API ✅ FONCTIONNEL
 
-## What's Been Implemented (Feb 14, 2026)
+## What's Been Implemented (Feb 15, 2026)
 
 ### Authentication
 - [x] Login page avec compte démo
