@@ -907,6 +907,72 @@ async def get_pending_count():
     return {"count": count}
 
 # ========================
+# ACCESS ACTION ENDPOINTS (for frontend page)
+# ========================
+
+@api_router.post("/access/action/approve")
+async def action_approve_access(data: AccessActionApprove):
+    """Approve an access request via POST (from frontend action page)"""
+    request = access_requests_col().find_one({"id": data.request_id})
+    if not request:
+        raise HTTPException(status_code=404, detail="Demande non trouvée ou déjà traitée")
+    
+    request = serialize_doc(request)
+    if request["status"] != "pending":
+        raise HTTPException(status_code=400, detail=f"Cette demande a déjà été traitée ({request['status']})")
+    
+    expires_at = None
+    if data.access_type == "temporary":
+        expires_at = (datetime.now(timezone.utc) + timedelta(minutes=20)).isoformat()
+    
+    access_requests_col().update_one(
+        {"id": data.request_id},
+        {"$set": {
+            "status": "approved",
+            "access_type": data.access_type,
+            "expires_at": expires_at
+        }}
+    )
+    
+    auth_id = str(uuid.uuid4())
+    authorized_users_col().insert_one({
+        "id": auth_id,
+        "name": request["name"],
+        "email": request["email"],
+        "access_type": data.access_type,
+        "expires_at": expires_at,
+        "approved_at": datetime.now(timezone.utc).isoformat()
+    })
+    
+    access_label = "permanent" if data.access_type == "permanent" else "20 minutes"
+    return {
+        "status": "approved",
+        "message": f"Accès {access_label} accordé avec succès!",
+        "name": request["name"],
+        "email": request["email"]
+    }
+
+@api_router.post("/access/action/deny")
+async def action_deny_access(data: AccessActionDeny):
+    """Deny an access request via POST (from frontend action page)"""
+    request = access_requests_col().find_one({"id": data.request_id})
+    if not request:
+        raise HTTPException(status_code=404, detail="Demande non trouvée ou déjà traitée")
+    
+    request = serialize_doc(request)
+    if request["status"] != "pending":
+        raise HTTPException(status_code=400, detail=f"Cette demande a déjà été traitée ({request['status']})")
+    
+    access_requests_col().update_one({"id": data.request_id}, {"$set": {"status": "denied"}})
+    
+    return {
+        "status": "denied",
+        "message": "Accès refusé.",
+        "name": request["name"],
+        "email": request["email"]
+    }
+
+# ========================
 # AUTH ROUTES
 # ========================
 
