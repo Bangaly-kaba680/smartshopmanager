@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/sonner";
 
 // Pages
 import AccessGatePage from "@/pages/AccessGatePage";
+import AccessActionPage from "@/pages/AccessActionPage";
 import LoginPage from "@/pages/LoginPage";
 import RegisterPage from "@/pages/RegisterPage";
 import ForgotPasswordPage from "@/pages/ForgotPasswordPage";
