@@ -58,6 +58,82 @@ db_employees = {}
 db_documents = {}
 db_accounts = {}
 
+# Email notification function
+async def send_access_notification_email(request_name: str, request_email: str, request_reason: str, request_id: str):
+    """Send email notification to admin when someone requests access"""
+    try:
+        if not resend.api_key or resend.api_key == 're_your_api_key_here':
+            logging.warning("Resend API key not configured - skipping email notification")
+            return False
+        
+        app_url = "https://shopflow-208.preview.emergentagent.com"
+        
+        html_content = f"""
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="utf-8">
+        </head>
+        <body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f5f5f5;">
+            <div style="background: linear-gradient(135deg, #6366f1 0%, #f97316 100%); padding: 30px; border-radius: 12px 12px 0 0; text-align: center;">
+                <h1 style="color: white; margin: 0; font-size: 24px;">🔔 Nouvelle Demande d'Accès</h1>
+                <p style="color: rgba(255,255,255,0.9); margin: 10px 0 0 0;">StartupManager Pro</p>
+            </div>
+            
+            <div style="background: white; padding: 30px; border-radius: 0 0 12px 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                <p style="color: #333; font-size: 16px; margin-bottom: 20px;">
+                    Bonjour <strong>Bangaly Kaba</strong>,
+                </p>
+                
+                <p style="color: #666; font-size: 14px;">
+                    Une nouvelle personne souhaite accéder à votre application :
+                </p>
+                
+                <div style="background: #f8f9fa; border-left: 4px solid #6366f1; padding: 15px; margin: 20px 0; border-radius: 0 8px 8px 0;">
+                    <p style="margin: 0 0 10px 0;"><strong>👤 Nom :</strong> {request_name}</p>
+                    <p style="margin: 0 0 10px 0;"><strong>📧 Email :</strong> {request_email}</p>
+                    <p style="margin: 0;"><strong>📝 Motif :</strong> {request_reason or 'Non spécifié'}</p>
+                </div>
+                
+                <p style="color: #666; font-size: 14px; margin: 20px 0;">
+                    <strong>Actions disponibles :</strong>
+                </p>
+                
+                <div style="text-align: center; margin: 25px 0;">
+                    <a href="{app_url}" style="display: inline-block; background: linear-gradient(135deg, #6366f1 0%, #f97316 100%); color: white; text-decoration: none; padding: 12px 30px; border-radius: 8px; font-weight: bold; margin: 5px;">
+                        🔐 Gérer les Accès
+                    </a>
+                </div>
+                
+                <p style="color: #999; font-size: 12px; text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee;">
+                    Connectez-vous à votre dashboard pour approuver ou refuser cette demande.<br>
+                    <strong>Contrôle d'Accès</strong> → Demandes en attente
+                </p>
+            </div>
+            
+            <p style="color: #999; font-size: 11px; text-align: center; margin-top: 20px;">
+                Développé par Bangaly Kaba | StartupManager Pro
+            </p>
+        </body>
+        </html>
+        """
+        
+        params = {
+            "from": SENDER_EMAIL,
+            "to": [ADMIN_NOTIFICATION_EMAIL],
+            "subject": f"🔔 Nouvelle demande d'accès de {request_name}",
+            "html": html_content
+        }
+        
+        # Run sync SDK in thread to keep FastAPI non-blocking
+        email_result = await asyncio.to_thread(resend.Emails.send, params)
+        logging.info(f"Access notification email sent: {email_result}")
+        return True
+        
+    except Exception as e:
+        logging.error(f"Failed to send access notification email: {str(e)}")
+        return False
+
 # Initialize with demo data
 def init_demo_data():
     # Create demo CEO user
