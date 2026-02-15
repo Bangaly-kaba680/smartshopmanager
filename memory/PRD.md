@@ -38,6 +38,19 @@ Système complet de gestion de startup avec:
 
 ## What's Been Implemented (Feb 15, 2026)
 
+### P0 - Security Admin Page (COMPLÉTÉ ✅) - Feb 15, 2026
+- [x] Centre de Sécurité - Page admin intégrée
+- [x] Gestion des demandes d'accès (approuver/refuser)
+- [x] Liste blanche avec gestion des rôles
+- [x] Blocage/déblocage des utilisateurs
+- [x] Journal d'audit des actions
+- [x] 6 rôles utilisateur (Super Admin, CEO, Manager, Caissier, Stock Manager, Visiteur)
+
+### P0 - Fix AI Conseil (COMPLÉTÉ ✅) - Feb 15, 2026
+- [x] Corrigé le bug de l'endpoint `/api/ai/generate-suggestion`
+- [x] Ajouté le contexte "page: dashboard" au POST request
+- [x] Conseils IA personnalisés fonctionnels sur le dashboard
+
 ### P1 - Migration MongoDB (COMPLÉTÉ ✅)
 - [x] Configuration MongoDB avec indexes
 - [x] Données de démo auto-initialisées
