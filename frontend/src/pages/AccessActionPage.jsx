@@ -6,15 +6,15 @@ const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 
 const AccessActionPage = () => {
   const [searchParams] = useSearchParams();
-  const [status, setStatus] = useState('loading'); // loading, success, denied, error, already_processed
+  const [status, setStatus] = useState('loading');
   const [message, setMessage] = useState('');
   const [details, setDetails] = useState(null);
 
   useEffect(() => {
     const processAction = async () => {
       const requestId = searchParams.get('id');
-      const action = searchParams.get('action'); // approve or deny
-      const accessType = searchParams.get('type'); // permanent or temporary
+      const action = searchParams.get('action');
+      const accessType = searchParams.get('type') || 'permanent';
 
       if (!requestId || !action) {
         setStatus('error');
@@ -23,60 +23,57 @@ const AccessActionPage = () => {
       }
 
       try {
-        let response;
-        if (action === 'approve') {
-          response = await fetch(`${BACKEND_URL}/api/access/action/approve`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ request_id: requestId, access_type: accessType || 'permanent' })
-          });
-        } else if (action === 'deny') {
-          response = await fetch(`${BACKEND_URL}/api/access/action/deny`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ request_id: requestId })
-          });
-        } else {
-          setStatus('error');
-          setMessage('Action non reconnue.');
-          return;
-        }
+        const endpoint = action === 'approve' 
+          ? `${BACKEND_URL}/api/access/action/approve`
+          : `${BACKEND_URL}/api/access/action/deny`;
+        
+        const body = action === 'approve'
+          ? { request_id: requestId, access_type: accessType }
+          : { request_id: requestId };
 
-        const text = await response.text();
+        const response = await fetch(endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body)
+        });
+
+        // Clone response before reading to avoid "body already read" error
+        const responseClone = response.clone();
+        
         let data;
         try {
-          data = JSON.parse(text);
+          data = await response.json();
         } catch {
-          data = { detail: text };
+          const text = await responseClone.text();
+          data = { detail: text || 'Erreur inconnue' };
         }
 
         if (response.ok) {
-          if (action === 'approve') {
-            setStatus('success');
-            setMessage(data.message || 'Accès accordé avec succès!');
-            setDetails({
-              name: data.name,
-              email: data.email,
-              accessType: accessType === 'temporary' ? '20 minutes' : 'Permanent'
-            });
-          } else {
-            setStatus('denied');
-            setMessage(data.message || 'Accès refusé.');
-            setDetails({ name: data.name, email: data.email });
-          }
+          setStatus(action === 'approve' ? 'success' : 'denied');
+          setMessage(data.message || (action === 'approve' ? 'Accès accordé!' : 'Accès refusé.'));
+          setDetails({
+            name: data.name,
+            email: data.email,
+            accessType: accessType === 'temporary' ? '20 minutes' : 'Permanent'
+          });
         } else {
-          if (data.detail?.includes('déjà')) {
+          // Check if already processed
+          const detail = data.detail || '';
+          if (detail.includes('déjà') || detail.includes('already')) {
             setStatus('already_processed');
-            setMessage(data.detail);
+            setMessage('Cette demande a déjà été traitée.');
+          } else if (detail.includes('non trouvée') || detail.includes('not found')) {
+            setStatus('error');
+            setMessage('Demande non trouvée ou expirée.');
           } else {
             setStatus('error');
-            setMessage(data.detail || 'Une erreur est survenue.');
+            setMessage(detail || 'Une erreur est survenue.');
           }
         }
       } catch (error) {
-        console.error('Error processing action:', error);
+        console.error('Network error:', error);
         setStatus('error');
-        setMessage('Erreur de connexion au serveur.');
+        setMessage('Erreur de connexion. Veuillez réessayer.');
       }
     };
 
@@ -84,48 +81,37 @@ const AccessActionPage = () => {
   }, [searchParams]);
 
   const getIcon = () => {
+    const iconProps = { className: "w-20 h-20" };
     switch (status) {
       case 'loading':
-        return <Loader2 className="w-20 h-20 text-indigo-500 animate-spin" />;
+        return <Loader2 {...iconProps} className="w-20 h-20 text-indigo-500 animate-spin" />;
       case 'success':
-        return <CheckCircle className="w-20 h-20 text-green-500" />;
+        return <CheckCircle {...iconProps} className="w-20 h-20 text-green-500" />;
       case 'denied':
-        return <XCircle className="w-20 h-20 text-red-500" />;
+        return <XCircle {...iconProps} className="w-20 h-20 text-orange-500" />;
       case 'already_processed':
-        return <Clock className="w-20 h-20 text-blue-500" />;
-      case 'error':
+        return <Clock {...iconProps} className="w-20 h-20 text-blue-500" />;
       default:
-        return <AlertCircle className="w-20 h-20 text-red-500" />;
+        return <AlertCircle {...iconProps} className="w-20 h-20 text-red-500" />;
     }
   };
 
   const getTitle = () => {
     switch (status) {
-      case 'loading':
-        return 'Traitement en cours...';
-      case 'success':
-        return 'Accès Accordé!';
-      case 'denied':
-        return 'Accès Refusé';
-      case 'already_processed':
-        return 'Déjà Traité';
-      case 'error':
-      default:
-        return 'Erreur';
+      case 'loading': return 'Traitement...';
+      case 'success': return 'Accès Accordé!';
+      case 'denied': return 'Accès Refusé';
+      case 'already_processed': return 'Déjà Traité';
+      default: return 'Erreur';
     }
   };
 
-  const getBgColor = () => {
+  const getBorderColor = () => {
     switch (status) {
-      case 'success':
-        return 'border-l-green-500';
-      case 'denied':
-        return 'border-l-red-500';
-      case 'already_processed':
-        return 'border-l-blue-500';
-      case 'error':
-      default:
-        return 'border-l-red-500';
+      case 'success': return 'border-l-green-500';
+      case 'denied': return 'border-l-orange-500';
+      case 'already_processed': return 'border-l-blue-500';
+      default: return 'border-l-red-500';
     }
   };
 
@@ -149,26 +135,22 @@ const AccessActionPage = () => {
         <h1 className="text-2xl font-bold text-gray-800 mb-4">{getTitle()}</h1>
 
         {/* Message */}
-        <div className={`bg-gray-50 border-l-4 ${getBgColor()} p-4 rounded-r-lg mb-6`}>
+        <div className={`bg-gray-50 border-l-4 ${getBorderColor()} p-4 rounded-r-lg mb-6`}>
           <p className="text-gray-600">{message}</p>
         </div>
 
         {/* Details */}
-        {details && (
+        {details && details.name && (
           <div className="bg-gray-50 rounded-lg p-4 mb-6 text-left">
-            {details.name && (
-              <p className="text-sm text-gray-600 mb-1">
-                <span className="font-medium">Nom:</span> {details.name}
-              </p>
-            )}
-            {details.email && (
-              <p className="text-sm text-gray-600 mb-1">
-                <span className="font-medium">Email:</span> {details.email}
-              </p>
-            )}
-            {details.accessType && (
+            <p className="text-sm text-gray-600 mb-1">
+              <span className="font-medium">Nom:</span> {details.name}
+            </p>
+            <p className="text-sm text-gray-600 mb-1">
+              <span className="font-medium">Email:</span> {details.email}
+            </p>
+            {status === 'success' && (
               <p className="text-sm text-gray-600">
-                <span className="font-medium">Type d'accès:</span> {details.accessType}
+                <span className="font-medium">Type:</span> {details.accessType}
               </p>
             )}
           </div>
