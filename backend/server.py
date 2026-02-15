@@ -70,68 +70,96 @@ async def send_access_notification_email(request_name: str, request_email: str, 
         api_url = f"{app_url}/api"
         
         html_content = f"""
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <meta charset="utf-8">
-        </head>
-        <body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f5f5f5;">
-            <div style="background: linear-gradient(135deg, #6366f1 0%, #f97316 100%); padding: 30px; border-radius: 12px 12px 0 0; text-align: center;">
-                <h1 style="color: white; margin: 0; font-size: 24px;">🔔 Nouvelle Demande d'Accès</h1>
-                <p style="color: rgba(255,255,255,0.9); margin: 10px 0 0 0;">StartupManager Pro</p>
-            </div>
-            
-            <div style="background: white; padding: 30px; border-radius: 0 0 12px 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-                <p style="color: #333; font-size: 16px; margin-bottom: 20px;">
-                    Bonjour <strong>Bangaly Kaba</strong>,
-                </p>
-                
-                <p style="color: #666; font-size: 14px;">
-                    Une nouvelle personne souhaite accéder à votre application :
-                </p>
-                
-                <div style="background: #f8f9fa; border-left: 4px solid #6366f1; padding: 15px; margin: 20px 0; border-radius: 0 8px 8px 0;">
-                    <p style="margin: 0 0 10px 0;"><strong>👤 Nom :</strong> {request_name}</p>
-                    <p style="margin: 0 0 10px 0;"><strong>📧 Email :</strong> {request_email}</p>
-                    <p style="margin: 0;"><strong>📝 Motif :</strong> {request_reason or 'Non spécifié'}</p>
-                </div>
-                
-                <p style="color: #333; font-size: 16px; font-weight: bold; margin: 25px 0 15px 0; text-align: center;">
-                    ⚡ Choisissez une action :
-                </p>
-                
-                <div style="text-align: center; margin: 20px 0;">
-                    <a href="{api_url}/access/quick-approve/{request_id}/permanent" 
-                       style="display: inline-block; background: #10B981; color: white; text-decoration: none; padding: 14px 28px; border-radius: 8px; font-weight: bold; margin: 8px; font-size: 14px;">
-                        ✅ PERMANENT
-                    </a>
-                </div>
-                
-                <div style="text-align: center; margin: 20px 0;">
-                    <a href="{api_url}/access/quick-approve/{request_id}/temporary" 
-                       style="display: inline-block; background: #3B82F6; color: white; text-decoration: none; padding: 14px 28px; border-radius: 8px; font-weight: bold; margin: 8px; font-size: 14px;">
-                        ⏱️ 20 MINUTES
-                    </a>
-                </div>
-                
-                <div style="text-align: center; margin: 20px 0;">
-                    <a href="{api_url}/access/quick-deny/{request_id}" 
-                       style="display: inline-block; background: #EF4444; color: white; text-decoration: none; padding: 14px 28px; border-radius: 8px; font-weight: bold; margin: 8px; font-size: 14px;">
-                        ❌ REFUSER
-                    </a>
-                </div>
-                
-                <p style="color: #999; font-size: 12px; text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee;">
-                    Cliquez sur un bouton ci-dessus pour autoriser ou refuser l'accès.<br>
-                    L'action sera appliquée immédiatement.
-                </p>
-            </div>
-            
-            <p style="color: #999; font-size: 11px; text-align: center; margin-top: 20px;">
-                Développé par Bangaly Kaba | StartupManager Pro
-            </p>
-        </body>
-        </html>
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f5f5f5;">
+    <div style="background: linear-gradient(135deg, #6366f1 0%, #f97316 100%); padding: 30px; border-radius: 12px 12px 0 0; text-align: center;">
+        <h1 style="color: white; margin: 0; font-size: 24px;">🔔 Nouvelle Demande d'Accès</h1>
+        <p style="color: rgba(255,255,255,0.9); margin: 10px 0 0 0;">StartupManager Pro</p>
+    </div>
+    
+    <div style="background: white; padding: 30px; border-radius: 0 0 12px 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+        <p style="color: #333; font-size: 16px; margin-bottom: 20px;">
+            Bonjour <strong>Bangaly Kaba</strong>,
+        </p>
+        
+        <p style="color: #666; font-size: 14px;">
+            Une nouvelle personne souhaite accéder à votre application :
+        </p>
+        
+        <div style="background: #f8f9fa; border-left: 4px solid #6366f1; padding: 15px; margin: 20px 0; border-radius: 0 8px 8px 0;">
+            <p style="margin: 0 0 10px 0;"><strong>👤 Nom :</strong> {request_name}</p>
+            <p style="margin: 0 0 10px 0;"><strong>📧 Email :</strong> {request_email}</p>
+            <p style="margin: 0;"><strong>📝 Motif :</strong> {request_reason or 'Non spécifié'}</p>
+        </div>
+        
+        <p style="color: #333; font-size: 18px; font-weight: bold; margin: 30px 0 20px 0; text-align: center;">
+            ⚡ Choisissez une action :
+        </p>
+        
+        <table width="100%" cellpadding="0" cellspacing="0" border="0">
+            <tr>
+                <td align="center" style="padding: 10px 0;">
+                    <table cellpadding="0" cellspacing="0" border="0">
+                        <tr>
+                            <td align="center" bgcolor="#10B981" style="border-radius: 10px;">
+                                <a href="{api_url}/access/quick-approve/{request_id}/permanent" 
+                                   target="_blank"
+                                   style="display: block; padding: 20px 50px; font-family: Arial, sans-serif; font-size: 18px; font-weight: bold; color: #ffffff; text-decoration: none; border-radius: 10px;">
+                                    ✅ ACCÈS PERMANENT
+                                </a>
+                            </td>
+                        </tr>
+                    </table>
+                </td>
+            </tr>
+            <tr>
+                <td align="center" style="padding: 10px 0;">
+                    <table cellpadding="0" cellspacing="0" border="0">
+                        <tr>
+                            <td align="center" bgcolor="#3B82F6" style="border-radius: 10px;">
+                                <a href="{api_url}/access/quick-approve/{request_id}/temporary" 
+                                   target="_blank"
+                                   style="display: block; padding: 20px 50px; font-family: Arial, sans-serif; font-size: 18px; font-weight: bold; color: #ffffff; text-decoration: none; border-radius: 10px;">
+                                    ⏱️ ACCÈS 20 MINUTES
+                                </a>
+                            </td>
+                        </tr>
+                    </table>
+                </td>
+            </tr>
+            <tr>
+                <td align="center" style="padding: 10px 0;">
+                    <table cellpadding="0" cellspacing="0" border="0">
+                        <tr>
+                            <td align="center" bgcolor="#EF4444" style="border-radius: 10px;">
+                                <a href="{api_url}/access/quick-deny/{request_id}" 
+                                   target="_blank"
+                                   style="display: block; padding: 20px 50px; font-family: Arial, sans-serif; font-size: 18px; font-weight: bold; color: #ffffff; text-decoration: none; border-radius: 10px;">
+                                    ❌ REFUSER L'ACCÈS
+                                </a>
+                            </td>
+                        </tr>
+                    </table>
+                </td>
+            </tr>
+        </table>
+        
+        <p style="color: #999; font-size: 12px; text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee;">
+            Cliquez sur un bouton ci-dessus pour autoriser ou refuser l'accès.<br>
+            L'action sera appliquée immédiatement.
+        </p>
+    </div>
+    
+    <p style="color: #999; font-size: 11px; text-align: center; margin-top: 20px;">
+        Développé par Bangaly Kaba | StartupManager Pro
+    </p>
+</body>
+</html>
         """
         
         params = {
