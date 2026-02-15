@@ -308,7 +308,8 @@ class TestWhatsAppSMSReceipt:
             assert sms_response.status_code == 200
             data = sms_response.json()
             assert data["status"] == "sent"
-            print(f"✓ SMS receipt sent (SIMULATED): {data['message_id']}")
+            assert "receipt" in data
+            print(f"✓ SMS receipt sent (SIMULATED): {data['message']}")
         else:
             print("⚠ No products available for SMS receipt test")
 
