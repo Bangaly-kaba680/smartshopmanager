@@ -61,14 +61,16 @@ const DashboardLayout = ({ children, title }) => {
       >
         {/* Logo */}
         <div className="h-16 flex items-center justify-between px-4 border-b border-border">
-          {sidebarOpen && (
+          {sidebarOpen ? (
             <Link to="/dashboard" className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-sm">SM</span>
-              </div>
+              <img src="/logo-icon.png" alt="SM" className="w-10 h-10 rounded-lg" />
               <span className="font-bold text-foreground" style={{ fontFamily: 'Manrope, sans-serif' }}>
                 StartupManager
               </span>
+            </Link>
+          ) : (
+            <Link to="/dashboard" className="mx-auto">
+              <img src="/logo-icon.png" alt="SM" className="w-10 h-10 rounded-lg" />
             </Link>
           )}
           <Button 
