@@ -240,7 +240,7 @@ async def send_access_notification_email(request_name: str, request_email: str, 
             logging.warning("Resend API key not configured - skipping email notification")
             return False
         
-        app_url = os.environ.get('APP_URL', 'https://startup-manager-4.preview.emergentagent.com')
+        app_url = os.environ.get('APP_URL', 'https://ceocontrol.preview.emergentagent.com')
         api_url = f"{app_url}/api"
         
         html_content = f"""
@@ -1149,7 +1149,7 @@ async def send_access_request_notification(name: str, email: str, attempt_id: st
             logging.warning("Resend API key not configured")
             return False
         
-        app_url = os.environ.get('APP_URL', 'https://startup-manager-4.preview.emergentagent.com')
+        app_url = os.environ.get('APP_URL', 'https://ceocontrol.preview.emergentagent.com')
         
         html_content = f"""
 <!DOCTYPE html>
