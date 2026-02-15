@@ -2424,5 +2424,6 @@ logger = logging.getLogger(__name__)
 @app.on_event("startup")
 async def startup_event():
     init_indexes()
+    init_security()
     init_demo_data()
-    logger.info("StartupManager Pro API started with MongoDB")
+    logger.info("StartupManager Pro API started with MongoDB + Security")
