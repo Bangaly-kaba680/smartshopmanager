@@ -8,6 +8,7 @@ import { CurrencyProvider } from "@/contexts/CurrencyContext";
 import AccessGatePage from "@/pages/AccessGatePage";
 import AccessActionPage from "@/pages/AccessActionPage";
 import AdminApprovePage from "@/pages/AdminApprovePage";
+import SecurityAdminPage from "@/pages/SecurityAdminPage";
 import LoginPage from "@/pages/LoginPage";
 import RegisterPage from "@/pages/RegisterPage";
 import ForgotPasswordPage from "@/pages/ForgotPasswordPage";
