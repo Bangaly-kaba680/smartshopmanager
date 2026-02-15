@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="3" skipped="0" tests="29" time="55.612" timestamp="2026-02-15T03:44:11.509135+00:00" hostname="agent-env-7b857a31-9b75-42e5-8422-8252c0bfe578"><testcase classname="backend.tests.test_startup_manager.TestHealthAndBasics" name="test_api_root" time="0.244" /><testcase classname="backend.tests.test_startup_manager.TestAuthentication" name="test_login_success" time="0.353" /><testcase classname="backend.tests.test_startup_manager.TestAuthentication" name="test_login_invalid_credentials" time="0.126" /><testcase classname="backend.tests.test_startup_manager.TestAuthentication" name="test_register_new_user" time="0.346" /><testcase classname="backend.tests.test_startup_manager.TestMongoDBPersistence" name="test_products_crud_persistence" time="0.720" /><testcase classname="backend.tests.test_startup_manager.TestMongoDBPersistence" name="test_employees_crud_persistence" time="0.490" /><testcase classname="backend.tests.test_startup_manager.TestMongoDBPersistence" name="test_sales_persistence" time="0.362" /><testcase classname="backend.tests.test_startup_manager.TestPaymentEndpoints" name="test_orange_money_initiate" time="0.133" /><testcase classname="backend.tests.test_startup_manager.TestPaymentEndpoints" name="test_orange_money_confirm" time="0.237" /><testcase classname="backend.tests.test_startup_manager.TestPaymentEndpoints" name="test_card_payment" time="0.111" /><testcase classname="backend.tests.test_startup_manager.TestPaymentEndpoints" name="test_cash_payment" time="0.113" /><testcase classname="backend.tests.test_startup_manager.TestWhatsAppSMSReceipt" name="test_whatsapp_receipt" time="0.315"><failure message="assert 404 == 200&#10; +  where 404 = &lt;Response [404]&gt;.status_code">backend/tests/test_startup_manager.py:282: in test_whatsapp_receipt
+    assert receipt_response.status_code == 200
+E   assert 404 == 200
+E    +  where 404 = &lt;Response [404]&gt;.status_code</failure></testcase><testcase classname="backend.tests.test_startup_manager.TestWhatsAppSMSReceipt" name="test_sms_receipt" time="0.354"><failure message="assert 404 == 200&#10; +  where 404 = &lt;Response [404]&gt;.status_code">backend/tests/test_startup_manager.py:308: in test_sms_receipt
+    assert sms_response.status_code == 200
+E   assert 404 == 200
+E    +  where 404 = &lt;Response [404]&gt;.status_code</failure></testcase><testcase classname="backend.tests.test_startup_manager.TestExportEndpoints" name="test_products_csv_export" time="0.104" /><testcase classname="backend.tests.test_startup_manager.TestExportEndpoints" name="test_employees_csv_export" time="0.106" /><testcase classname="backend.tests.test_startup_manager.TestExportEndpoints" name="test_sales_pdf_export" time="0.117" /><testcase classname="backend.tests.test_startup_manager.TestAIIntegration" name="test_ai_help" time="4.749" /><testcase classname="backend.tests.test_startup_manager.TestAIIntegration" name="test_ai_contract_generation" time="30.216"><failure message="requests.exceptions.ReadTimeout: HTTPSConnectionPool(host='startup-manager-4.preview.emergentagent.com', port=443): Read timed out. (read timeout=30)">/root/.venv/lib/python3.11/site-packages/urllib3/connectionpool.py:534: in _make_request
+    response = conn.getresponse()
+               ^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/urllib3/connection.py:571: in getresponse
+    httplib_response = super().getresponse()
+                       ^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.11/http/client.py:1395: in getresponse
+    response.begin()
+/usr/local/lib/python3.11/http/client.py:325: in begin
+    version, status, reason = self._read_status()
+                              ^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.11/http/client.py:286: in _read_status
+    line = str(self.fp.readline(_MAXLINE + 1), "iso-8859-1")
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.11/socket.py:718: in readinto
+    return self._sock.recv_into(b)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.11/ssl.py:1314: in recv_into
+    return self.read(nbytes, buffer)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.11/ssl.py:1166: in read
+    return self._sslobj.read(len, buffer)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   TimeoutError: The read operation timed out
+
+The above exception was the direct cause of the following exception:
+/root/.venv/lib/python3.11/site-packages/requests/adapters.py:644: in send
+    resp = conn.urlopen(
+/root/.venv/lib/python3.11/site-packages/urllib3/connectionpool.py:841: in urlopen
+    retries = retries.increment(
+/root/.venv/lib/python3.11/site-packages/urllib3/util/retry.py:490: in increment
+    raise reraise(type(error), error, _stacktrace)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/urllib3/util/util.py:39: in reraise
+    raise value
+/root/.venv/lib/python3.11/site-packages/urllib3/connectionpool.py:787: in urlopen
+    response = self._make_request(
+/root/.venv/lib/python3.11/site-packages/urllib3/connectionpool.py:536: in _make_request
+    self._raise_timeout(err=e, url=url, timeout_value=read_timeout)
+/root/.venv/lib/python3.11/site-packages/urllib3/connectionpool.py:367: in _raise_timeout
+    raise ReadTimeoutError(
+E   urllib3.exceptions.ReadTimeoutError: HTTPSConnectionPool(host='startup-manager-4.preview.emergentagent.com', port=443): Read timed out. (read timeout=30)
+
+During handling of the above exception, another exception occurred:
+backend/tests/test_startup_manager.py:369: in test_ai_contract_generation
+    response = requests.post(f"{BASE_URL}/api/ai/contract", json={
+/root/.venv/lib/python3.11/site-packages/requests/api.py:115: in post
+    return request("post", url, data=data, json=json, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/requests/api.py:59: in request
+    return session.request(method=method, url=url, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/requests/sessions.py:589: in request
+    resp = self.send(prep, **send_kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/requests/sessions.py:703: in send
+    r = adapter.send(request, **kwargs)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/requests/adapters.py:690: in send
+    raise ReadTimeout(e, request=request)
+E   requests.exceptions.ReadTimeout: HTTPSConnectionPool(host='startup-manager-4.preview.emergentagent.com', port=443): Read timed out. (read timeout=30)</failure></testcase><testcase classname="backend.tests.test_startup_manager.TestAIIntegration" name="test_ai_marketing_content" time="14.255" /><testcase classname="backend.tests.test_startup_manager.TestAIIntegration" name="test_ai_dashboard_insights" time="0.132" /><testcase classname="backend.tests.test_startup_manager.TestAccessControl" name="test_access_check_admin" time="0.099" /><testcase classname="backend.tests.test_startup_manager.TestAccessControl" name="test_access_check_authorized_user" time="0.118" /><testcase classname="backend.tests.test_startup_manager.TestAccessControl" name="test_access_request_flow" time="0.374" /><testcase classname="backend.tests.test_startup_manager.TestAccessControl" name="test_get_access_requests" time="0.110" /><testcase classname="backend.tests.test_startup_manager.TestAccessControl" name="test_get_authorized_users" time="0.110" /><testcase classname="backend.tests.test_startup_manager.TestDashboardAndStats" name="test_dashboard_stats" time="0.134" /><testcase classname="backend.tests.test_startup_manager.TestDashboardAndStats" name="test_accounts_balance" time="0.099" /><testcase classname="backend.tests.test_startup_manager.TestBatchesAndStock" name="test_batches_list" time="0.118" /><testcase classname="backend.tests.test_startup_manager.TestBatchesAndStock" name="test_batch_qr_generation" time="0.632" /></testsuite></testsuites>
