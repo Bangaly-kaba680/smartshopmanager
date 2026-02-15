@@ -1,4 +1,4 @@
-from fastapi import FastAPI, APIRouter, HTTPException, status
+from fastapi import FastAPI, APIRouter, HTTPException, status, Request
 from fastapi.responses import StreamingResponse, HTMLResponse
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
@@ -21,6 +21,14 @@ from emergentintegrations.llm.chat import LlmChat, UserMessage
 import asyncio
 import resend
 from database import get_database, get_collection, init_indexes
+from security import (
+    SUPER_ADMIN_EMAIL, ROLE_PERMISSIONS, get_role_permissions, check_permission,
+    is_super_admin, add_to_whitelist, remove_from_whitelist, is_whitelisted,
+    get_whitelist, log_access_attempt, get_pending_attempts, approve_attempt,
+    deny_attempt, block_user, unblock_user, is_blocked, get_blocked_users,
+    log_action, get_audit_log, create_session, validate_session,
+    invalidate_session, invalidate_all_user_sessions, init_security
+)
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
