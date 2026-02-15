@@ -294,6 +294,14 @@ async def request_access(request: AccessRequest):
         "created_at": datetime.now(timezone.utc).isoformat()
     }
     
+    # Send email notification to admin
+    await send_access_notification_email(
+        request_name=request.name,
+        request_email=request.email,
+        request_reason=request.reason or "",
+        request_id=request_id
+    )
+    
     return {
         "status": "submitted",
         "message": "Demande envoyée! Bangaly Kaba va examiner votre demande.",
