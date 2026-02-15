@@ -275,7 +275,7 @@ class TestWhatsAppSMSReceipt:
             sale_id = sale_response.json()["id"]
             
             # Send WhatsApp receipt
-            receipt_response = requests.post(f"{BASE_URL}/api/whatsapp/receipt", json={
+            receipt_response = requests.post(f"{BASE_URL}/api/whatsapp/send-receipt", json={
                 "phone": "+221771234567",
                 "sale_id": sale_id
             })
@@ -301,7 +301,7 @@ class TestWhatsAppSMSReceipt:
             sale_id = sale_response.json()["id"]
             
             # Send SMS receipt
-            sms_response = requests.post(f"{BASE_URL}/api/sms/receipt", json={
+            sms_response = requests.post(f"{BASE_URL}/api/sms/send-receipt", json={
                 "phone": "+221771234567",
                 "sale_id": sale_id
             })
