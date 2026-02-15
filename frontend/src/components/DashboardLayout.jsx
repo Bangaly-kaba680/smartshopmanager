@@ -168,14 +168,21 @@ const DashboardLayout = ({ children, title }) => {
           {children}
         </main>
 
-        {/* Footer Signature */}
-        <footer className="h-12 bg-card border-t border-border flex items-center justify-center px-4">
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <div className="w-6 h-6 rounded-full bg-gradient-to-r from-indigo-500 to-orange-500 flex items-center justify-center">
-              <span className="text-[10px] font-bold text-white">BK</span>
+        {/* Footer Signature - Bangaly Kaba */}
+        <footer className="h-14 bg-gradient-to-r from-card via-card to-card border-t border-border flex items-center justify-center px-4 relative overflow-hidden">
+          {/* Decorative gradient line */}
+          <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-indigo-500 via-purple-500 to-orange-500"></div>
+          
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-orange-500 flex items-center justify-center shadow-lg">
+              <span className="text-xs font-bold text-white">BK</span>
             </div>
-            <span>Développé par</span>
-            <span className="font-semibold text-foreground">Bangaly Kaba</span>
+            <div className="flex flex-col">
+              <span className="text-xs text-muted-foreground">Développé par</span>
+              <span className="text-sm font-bold bg-gradient-to-r from-indigo-500 to-orange-500 bg-clip-text text-transparent">
+                Bangaly Kaba
+              </span>
+            </div>
           </div>
         </footer>
       </div>
