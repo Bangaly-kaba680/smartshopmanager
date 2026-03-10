@@ -64,15 +64,54 @@ app.add_middleware(
 # Security
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 security = HTTPBearer(auto_error=False)
-JWT_SECRET = os.environ.get("JWT_SECRET", "bintronix-saas-secret-2026")
+JWT_SECRET = os.environ.get("JWT_SECRET", "bintronix-saas-secret-key-2026-very-secure")
 JWT_ALGORITHM = "HS256"
 JWT_EXPIRATION_HOURS = 24
+
+# OTP Storage (in production, use Redis)
+otp_storage = {}
 
 # LLM Key
 EMERGENT_LLM_KEY = os.environ.get("EMERGENT_LLM_KEY", "")
 
 # Super Admin Email
 SUPER_ADMIN_EMAIL = "bangalykaba635@gmail.com"
+
+# ========================
+# OTP FUNCTIONS (2FA)
+# ========================
+
+import random
+import string
+
+def generate_otp(length=6):
+    """Generate a random OTP code"""
+    return ''.join(random.choices(string.digits, k=length))
+
+def store_otp(email: str, otp: str, data: dict = None):
+    """Store OTP with expiration (5 minutes)"""
+    otp_storage[email] = {
+        "otp": otp,
+        "data": data,
+        "expires": datetime.now(timezone.utc) + timedelta(minutes=5)
+    }
+
+def verify_otp(email: str, otp: str):
+    """Verify OTP and return stored data if valid"""
+    if email not in otp_storage:
+        return None, "Code OTP non trouvé"
+    
+    stored = otp_storage[email]
+    if datetime.now(timezone.utc) > stored["expires"]:
+        del otp_storage[email]
+        return None, "Code OTP expiré"
+    
+    if stored["otp"] != otp:
+        return None, "Code OTP invalide"
+    
+    data = stored["data"]
+    del otp_storage[email]
+    return data, None
 
 # ========================
 # PYDANTIC MODELS
