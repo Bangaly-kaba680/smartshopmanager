@@ -1,9 +1,11 @@
-# BINTRONIX - PRD
+# BINTRONIX - SmartShopManager SaaS PRD
 
 ## Original Problem Statement
-Système complet de gestion de startup avec:
+Système complet de gestion de startup multi-tenant SaaS avec:
+- Architecture Multi-Tenant avec isolation des données
 - Authentification (Login/Register/Forgot Password/Mode Dark-Light)
-- Dashboard CEO avec sidebar navigation et cartes de stats financières
+- CEO Control Center (Dashboard global pour Super Admin)
+- Dashboard Propriétaire de boutique
 - POS (Point de Vente) pour caissiers
 - Gestion des Produits avec QR codes
 - Gestion du Stock/Lots avec génération de QR
@@ -11,13 +13,72 @@ Système complet de gestion de startup avec:
 - RH IA (génération de documents RH par IA - contrats, attestations de travail/stage)
 - Marketing IA (génération de contenu pour Facebook/WhatsApp)
 - Vue Finances
+- Support IA (tickets gérés via agent IA)
 - Centre d'Aide avec assistant IA
-- Paramètres
+- Paramètres et Abonnements
 
 ## Branding
-- **Nom**: BINTRONIX
+- **Nom Entreprise**: BINTRONIX
 - **Slogan**: Building the Future
+- **Nom Produit**: StartupManager Pro / SmartShopManager
 - **Logo**: /app/frontend/public/assets/bintronix-logo.png
+
+## Architecture Multi-Tenant (Mars 2026)
+
+### Rôles et Accès
+| Rôle | Niveau | Accès |
+|------|--------|-------|
+| **Super Admin** | Global | Toutes les données, CEO Control Center, Support IA |
+| **Owner** | Tenant | Ses boutiques, employés, ventes uniquement |
+| **Manager** | Boutique | Gestion produits, stock (pas finances) |
+| **Cashier** | Limité | POS uniquement |
+| **Stock Manager** | Limité | Stock uniquement |
+| **Viewer** | Lecture | Consultation uniquement |
+
+### Isolation des Données
+- Chaque abonné a un `tenant_id` unique
+- Toutes les requêtes sont filtrées par tenant
+- Un propriétaire ne voit JAMAIS les données d'un autre
+
+### Plans d'Abonnement
+| Plan | Prix/mois | Boutiques | Utilisateurs | Fonctionnalités |
+|------|-----------|-----------|--------------|-----------------|
+| Trial | Gratuit | 1 | 2 | 14 jours |
+| Starter | 50,000 GNF | 1 | 2 | POS Basic |
+| Business | 150,000 GNF | 3 | 10 | IA, Rapports |
+| Enterprise | 500,000 GNF | Illimité | Illimité | Tout |
+
+## Base de Données PostgreSQL
+Tables principales:
+- tenants (abonnés)
+- users (avec tenant_id et rôle)
+- shops (boutiques par tenant)
+- products (produits par boutique)
+- sales, sale_items (transactions)
+- employees (employés)
+- support_tickets (tickets support)
+- subscriptions (historique abonnements)
+- audit_logs (journal d'audit)
+
+## Implémenté
+- [x] Migration MongoDB → PostgreSQL
+- [x] Architecture multi-tenant
+- [x] CEO Control Center avec 4 onglets
+- [x] Système d'inscription tenant avec période d'essai
+- [x] Isolation des données par tenant_id
+- [x] Support IA pour tickets
+- [x] 6 rôles utilisateur avec permissions
+- [x] Site web BINTRONIX (/bintronix)
+- [x] Brand Assets (documents, réseaux sociaux, pitch)
+
+## En Cours
+- [ ] Application Caissier tablette (web responsive)
+- [ ] Intégrations paiement (Orange Money, Wave)
+
+## Backlog
+- [ ] Migration vers Flutter pour l'app caissier native
+- [ ] E-commerce intégré
+- [ ] Marketplace fournisseurs
 
 ## User Personas
 1. **CEO/PDG**: Accès complet à toutes les fonctionnalités, génération de documents RH, vue finances
