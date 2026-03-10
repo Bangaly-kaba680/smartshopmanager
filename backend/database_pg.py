@@ -32,6 +32,7 @@ class UserRole(enum.Enum):
     VIEWER = "viewer"            # Lecture seule
 
 class SubscriptionPlan(enum.Enum):
+    TRIAL = "trial"              # Period d'essai
     STARTER = "starter"          # 1 boutique, 2 users
     BUSINESS = "business"        # 3 boutiques, 10 users
     ENTERPRISE = "enterprise"    # Illimité
