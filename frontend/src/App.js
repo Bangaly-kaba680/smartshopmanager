@@ -130,7 +130,9 @@ const AuthProvider = ({ children }) => {
   };
 
   const isAuthenticated = !!token && !!user;
-  const isCEO = user?.role === 'ceo';
+  const isSuperAdmin = user?.role === 'super_admin';
+  const isOwner = user?.role === 'owner' || isSuperAdmin;
+  const isCEO = user?.role === 'ceo' || isOwner;
   const isManager = user?.role === 'manager' || isCEO;
   const isCashier = user?.role === 'cashier' || isManager;
   const isStockManager = user?.role === 'stock_manager' || isManager;
@@ -138,7 +140,7 @@ const AuthProvider = ({ children }) => {
   return (
     <AuthContext.Provider value={{ 
       user, token, login, logout, loading, setLoading,
-      isAuthenticated, isCEO, isManager, isCashier, isStockManager 
+      isAuthenticated, isSuperAdmin, isOwner, isCEO, isManager, isCashier, isStockManager 
     }}>
       {children}
     </AuthContext.Provider>
@@ -146,11 +148,15 @@ const AuthProvider = ({ children }) => {
 };
 
 // Protected Route
-const ProtectedRoute = ({ children, requireCEO = false }) => {
-  const { isAuthenticated, isCEO } = useAuth();
+const ProtectedRoute = ({ children, requireCEO = false, requireSuperAdmin = false }) => {
+  const { isAuthenticated, isCEO, isSuperAdmin } = useAuth();
   
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
+  }
+  
+  if (requireSuperAdmin && !isSuperAdmin) {
+    return <Navigate to="/dashboard" replace />;
   }
   
   if (requireCEO && !isCEO) {
