@@ -53,13 +53,13 @@ const LoginPage = () => {
         <div className="w-full max-w-md">
           <div className="mb-8 text-center lg:text-left">
             <div className="flex items-center justify-center lg:justify-start gap-3 mb-4">
-              <img src="/assets/bintronix-logo.png" alt="BINTRONIX" className="h-20 w-auto" />
+              <img src="/assets/bintronix-logo.png" alt="BINTRONIX" className="h-16 w-auto" />
             </div>
             <h1 className="text-3xl font-bold text-foreground mb-2" style={{ fontFamily: 'Manrope, sans-serif' }}>
-              <span className="bg-gradient-to-r from-emerald-500 to-cyan-500 bg-clip-text text-transparent">BINTRONIX</span>
+              StartupManager <span className="text-primary">Pro</span>
             </h1>
-            <p className="text-muted-foreground text-sm italic">Building the Future</p>
-            <p className="text-muted-foreground mt-2">Gérez votre entreprise efficacement</p>
+            <p className="text-muted-foreground">Gérez votre entreprise efficacement</p>
+            <p className="text-xs text-muted-foreground mt-1">Une solution <span className="font-semibold text-emerald-500">BINTRONIX</span></p>
           </div>
 
           <Card className="border-0 shadow-lg">
@@ -169,7 +169,7 @@ const LoginPage = () => {
         <div className="absolute inset-0 flex flex-col justify-end p-12">
           <blockquote className="text-white">
             <p className="text-xl italic mb-4">
-              "BINTRONIX a transformé ma façon de gérer mon entreprise. Une solution complète et innovante."
+              "Gérer mes boutiques n'a jamais été aussi simple. StartupManager Pro a transformé ma façon de travailler."
             </p>
             <footer className="text-slate-300 flex items-center gap-3">
               <img src="/assets/bintronix-logo.png" alt="BINTRONIX" className="w-12 h-12 rounded-lg object-cover" />
