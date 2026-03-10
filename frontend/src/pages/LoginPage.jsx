@@ -53,12 +53,13 @@ const LoginPage = () => {
         <div className="w-full max-w-md">
           <div className="mb-8 text-center lg:text-left">
             <div className="flex items-center justify-center lg:justify-start gap-3 mb-4">
-              <img src="/logo.png" alt="StartupManager Pro" className="h-16 w-auto" />
+              <img src="/assets/bintronix-logo.png" alt="BINTRONIX" className="h-20 w-auto" />
             </div>
             <h1 className="text-3xl font-bold text-foreground mb-2" style={{ fontFamily: 'Manrope, sans-serif' }}>
-              StartupManager <span className="text-primary">Pro</span>
+              <span className="bg-gradient-to-r from-emerald-500 to-cyan-500 bg-clip-text text-transparent">BINTRONIX</span>
             </h1>
-            <p className="text-muted-foreground">Gérez votre entreprise efficacement</p>
+            <p className="text-muted-foreground text-sm italic">Building the Future</p>
+            <p className="text-muted-foreground mt-2">Gérez votre entreprise efficacement</p>
           </div>
 
           <Card className="border-0 shadow-lg">
@@ -168,13 +169,14 @@ const LoginPage = () => {
         <div className="absolute inset-0 flex flex-col justify-end p-12">
           <blockquote className="text-white">
             <p className="text-xl italic mb-4">
-              "Gérer mes boutiques n'a jamais été aussi simple. StartupManager Pro a transformé ma façon de travailler."
+              "BINTRONIX a transformé ma façon de gérer mon entreprise. Une solution complète et innovante."
             </p>
             <footer className="text-slate-300 flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-gradient-to-r from-indigo-500 to-orange-500 flex items-center justify-center text-white font-bold">
-                BK
+              <img src="/assets/bintronix-logo.png" alt="BINTRONIX" className="w-12 h-12 rounded-lg object-cover" />
+              <div className="flex flex-col">
+                <span className="text-emerald-400 font-bold">BINTRONIX</span>
+                <span className="text-sm text-slate-400">Building the Future</span>
               </div>
-              <span>— Bangaly Kaba, Fondateur</span>
             </footer>
           </blockquote>
         </div>
