@@ -63,14 +63,14 @@ const DashboardLayout = ({ children, title }) => {
         <div className="h-16 flex items-center justify-between px-4 border-b border-border">
           {sidebarOpen ? (
             <Link to="/dashboard" className="flex items-center gap-2">
-              <img src="/logo-icon.png" alt="SM" className="w-10 h-10 rounded-lg" />
-              <span className="font-bold text-foreground" style={{ fontFamily: 'Manrope, sans-serif' }}>
-                StartupManager
+              <img src="/assets/bintronix-logo.png" alt="BINTRONIX" className="w-10 h-10 rounded-lg object-cover" />
+              <span className="font-bold bg-gradient-to-r from-emerald-500 to-cyan-500 bg-clip-text text-transparent" style={{ fontFamily: 'Manrope, sans-serif' }}>
+                BINTRONIX
               </span>
             </Link>
           ) : (
             <Link to="/dashboard" className="mx-auto">
-              <img src="/logo-icon.png" alt="SM" className="w-10 h-10 rounded-lg" />
+              <img src="/assets/bintronix-logo.png" alt="BINTRONIX" className="w-10 h-10 rounded-lg object-cover" />
             </Link>
           )}
           <Button 
@@ -171,19 +171,17 @@ const DashboardLayout = ({ children, title }) => {
           {children}
         </main>
 
-        {/* Footer Signature - Bangaly Kaba */}
-        <footer className="h-14 bg-gradient-to-r from-card via-card to-card border-t border-border flex items-center justify-center px-4 relative overflow-hidden">
+        {/* Footer Signature - BINTRONIX */}
+        <footer className="h-14 bg-gradient-to-r from-slate-900 via-emerald-900/20 to-slate-900 border-t border-emerald-500/20 flex items-center justify-center px-4 relative overflow-hidden">
           {/* Decorative gradient line */}
-          <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-indigo-500 via-purple-500 to-orange-500"></div>
+          <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-cyan-500 via-emerald-500 to-yellow-500"></div>
           
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-orange-500 flex items-center justify-center shadow-lg">
-              <span className="text-xs font-bold text-white">BK</span>
-            </div>
+            <img src="/assets/bintronix-logo.png" alt="BINTRONIX" className="w-9 h-9 rounded-lg object-cover shadow-lg" />
             <div className="flex flex-col">
-              <span className="text-xs text-muted-foreground">Développé par</span>
-              <span className="text-sm font-bold bg-gradient-to-r from-indigo-500 to-orange-500 bg-clip-text text-transparent">
-                Bangaly Kaba
+              <span className="text-xs text-muted-foreground">Powered by</span>
+              <span className="text-sm font-bold bg-gradient-to-r from-emerald-400 to-cyan-400 bg-clip-text text-transparent">
+                BINTRONIX
               </span>
             </div>
           </div>
