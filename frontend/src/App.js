@@ -10,6 +10,7 @@ import AccessActionPage from "@/pages/AccessActionPage";
 import AdminApprovePage from "@/pages/AdminApprovePage";
 import SecurityAdminPage from "@/pages/SecurityAdminPage";
 import BintronixWebsite from "@/pages/BintronixWebsite";
+import BrandAssetsPage from "@/pages/BrandAssetsPage";
 import LoginPage from "@/pages/LoginPage";
 import RegisterPage from "@/pages/RegisterPage";
 import ForgotPasswordPage from "@/pages/ForgotPasswordPage";
@@ -312,6 +313,9 @@ function App() {
                   
                   {/* Security Admin - Super Admin Only */}
                   <Route path="/security" element={<ProtectedRoute requireCEO><SecurityAdminPage /></ProtectedRoute>} />
+                  
+                  {/* Brand Assets - BINTRONIX */}
+                  <Route path="/brand-assets" element={<ProtectedRoute requireCEO><BrandAssetsPage /></ProtectedRoute>} />
                   
                   {/* Default redirect */}
                   <Route path="/" element={<Navigate to="/login" replace />} />
