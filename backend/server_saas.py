@@ -30,7 +30,7 @@ from database_pg import (
 from passlib.context import CryptContext
 
 # AI Integration
-from emergentintegrations.llm.chat import chat, LlmModel
+from emergentintegrations.llm.chat import LlmChat
 
 # Logging
 logging.basicConfig(level=logging.INFO)
@@ -228,12 +228,16 @@ async def generate_ai_response(prompt: str, system_prompt: str = None) -> str:
         return "Service IA non disponible"
     
     try:
-        response = await chat(
+        llm = LlmChat(
             api_key=EMERGENT_LLM_KEY,
-            model=LlmModel.GEMINI_2_0_FLASH,
-            user_prompt=prompt,
-            system_prompt=system_prompt or "Tu es un assistant professionnel pour SmartShopManager, une plateforme SaaS de gestion de boutiques. Réponds en français de manière concise et utile."
+            model="gemini/gemini-2.0-flash"
         )
+        if system_prompt:
+            llm.add_message("system", system_prompt)
+        else:
+            llm.add_message("system", "Tu es un assistant professionnel pour SmartShopManager, une plateforme SaaS de gestion de boutiques par BINTRONIX. Réponds en français de manière concise et utile.")
+        llm.add_message("user", prompt)
+        response = await llm.chat()
         return response
     except Exception as e:
         logger.error(f"AI Error: {e}")
