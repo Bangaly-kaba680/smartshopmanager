@@ -6,24 +6,25 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { 
   LayoutDashboard, Store, Users, Package, Boxes, ShoppingCart, 
   DollarSign, Brain, Megaphone, HelpCircle, Settings,
-  LogOut, Sun, Moon, Menu, X, ChevronLeft, Shield, ShieldCheck, Building2
+  LogOut, Sun, Moon, Menu, X, ChevronLeft, Shield, ShieldCheck, Building2, Command
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const menuItems = [
-  { path: '/dashboard', icon: LayoutDashboard, label: 'Dashboard', roles: ['ceo', 'manager', 'cashier', 'stock_manager'] },
-  { path: '/security', icon: ShieldCheck, label: 'Sécurité', roles: ['ceo'], superAdminOnly: true },
-  { path: '/brand-assets', icon: Building2, label: 'BINTRONIX Assets', roles: ['ceo'] },
-  { path: '/shops', icon: Store, label: 'Boutiques', roles: ['ceo'] },
-  { path: '/employees', icon: Users, label: 'Employés', roles: ['ceo', 'manager'] },
-  { path: '/products', icon: Package, label: 'Produits', roles: ['ceo', 'manager', 'cashier', 'stock_manager'] },
-  { path: '/stock', icon: Boxes, label: 'Stock', roles: ['ceo', 'manager', 'stock_manager'] },
-  { path: '/pos', icon: ShoppingCart, label: 'Ventes (POS)', roles: ['ceo', 'manager', 'cashier'] },
-  { path: '/finances', icon: DollarSign, label: 'Finances', roles: ['ceo'] },
-  { path: '/rh-ia', icon: Brain, label: 'RH IA', roles: ['ceo'] },
-  { path: '/marketing-ia', icon: Megaphone, label: 'Marketing IA', roles: ['ceo', 'manager'] },
-  { path: '/help', icon: HelpCircle, label: "Centre d'aide", roles: ['ceo', 'manager', 'cashier', 'stock_manager'] },
-  { path: '/settings', icon: Settings, label: 'Paramètres', roles: ['ceo', 'manager', 'cashier', 'stock_manager'] },
+  { path: '/ceo-control', icon: Command, label: 'CEO Control', roles: ['super_admin'], superAdminOnly: true },
+  { path: '/dashboard', icon: LayoutDashboard, label: 'Dashboard', roles: ['super_admin', 'owner', 'ceo', 'manager', 'cashier', 'stock_manager'] },
+  { path: '/security', icon: ShieldCheck, label: 'Sécurité', roles: ['super_admin', 'owner', 'ceo'], superAdminOnly: false },
+  { path: '/brand-assets', icon: Building2, label: 'BINTRONIX Assets', roles: ['super_admin', 'owner', 'ceo'] },
+  { path: '/shops', icon: Store, label: 'Boutiques', roles: ['super_admin', 'owner', 'ceo'] },
+  { path: '/employees', icon: Users, label: 'Employés', roles: ['super_admin', 'owner', 'ceo', 'manager'] },
+  { path: '/products', icon: Package, label: 'Produits', roles: ['super_admin', 'owner', 'ceo', 'manager', 'cashier', 'stock_manager'] },
+  { path: '/stock', icon: Boxes, label: 'Stock', roles: ['super_admin', 'owner', 'ceo', 'manager', 'stock_manager'] },
+  { path: '/pos', icon: ShoppingCart, label: 'Ventes (POS)', roles: ['super_admin', 'owner', 'ceo', 'manager', 'cashier'] },
+  { path: '/finances', icon: DollarSign, label: 'Finances', roles: ['super_admin', 'owner', 'ceo'] },
+  { path: '/rh-ia', icon: Brain, label: 'RH IA', roles: ['super_admin', 'owner', 'ceo'] },
+  { path: '/marketing-ia', icon: Megaphone, label: 'Marketing IA', roles: ['super_admin', 'owner', 'ceo', 'manager'] },
+  { path: '/help', icon: HelpCircle, label: "Centre d'aide", roles: ['super_admin', 'owner', 'ceo', 'manager', 'cashier', 'stock_manager'] },
+  { path: '/settings', icon: Settings, label: 'Paramètres', roles: ['super_admin', 'owner', 'ceo', 'manager', 'cashier', 'stock_manager'] },
 ];
 
 const DashboardLayout = ({ children, title }) => {
