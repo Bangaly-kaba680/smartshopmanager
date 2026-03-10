@@ -64,8 +64,8 @@ const DashboardLayout = ({ children, title }) => {
           {sidebarOpen ? (
             <Link to="/dashboard" className="flex items-center gap-2">
               <img src="/assets/bintronix-logo.png" alt="BINTRONIX" className="w-10 h-10 rounded-lg object-cover" />
-              <span className="font-bold bg-gradient-to-r from-emerald-500 to-cyan-500 bg-clip-text text-transparent" style={{ fontFamily: 'Manrope, sans-serif' }}>
-                BINTRONIX
+              <span className="font-bold text-foreground" style={{ fontFamily: 'Manrope, sans-serif' }}>
+                StartupManager
               </span>
             </Link>
           ) : (
