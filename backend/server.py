@@ -313,9 +313,122 @@ async def generate_ai_response(prompt: str, system_prompt: str = None) -> str:
 # AUTH ROUTES
 # ========================
 
+@api_router.post("/auth/register-request")
+async def request_registration(data: TenantRegisterRequest, db: Session = Depends(get_db)):
+    """Step 1: Request registration - sends OTP for 2FA"""
+    # Check if email exists
+    existing = db.query(User).filter(User.email == data.email).first()
+    if existing:
+        raise HTTPException(status_code=400, detail="Email déjà utilisé")
+    
+    existing_tenant = db.query(Tenant).filter(Tenant.email == data.email).first()
+    if existing_tenant:
+        raise HTTPException(status_code=400, detail="Email déjà utilisé")
+    
+    # Generate OTP
+    otp = generate_otp()
+    
+    # Store registration data with OTP
+    store_otp(data.email, otp, {
+        "company_name": data.company_name,
+        "owner_name": data.owner_name,
+        "email": data.email,
+        "password": data.password,
+        "phone": data.phone
+    })
+    
+    # In production, send OTP via email/SMS
+    # For now, we'll return it (in development mode)
+    logger.info(f"OTP for {data.email}: {otp}")
+    
+    return {
+        "message": "Code de vérification envoyé à votre email",
+        "email": data.email,
+        "otp_sent": True,
+        # Remove in production:
+        "dev_otp": otp
+    }
+
+@api_router.post("/auth/verify-registration")
+async def verify_registration(data: OTPVerify, db: Session = Depends(get_db)):
+    """Step 2: Verify OTP and complete registration"""
+    # Verify OTP
+    reg_data, error = verify_otp(data.email, data.otp)
+    if error:
+        raise HTTPException(status_code=400, detail=error)
+    
+    # Create tenant
+    tenant = Tenant(
+        uuid=str(uuid4()),
+        company_name=reg_data["company_name"],
+        owner_name=reg_data["owner_name"],
+        email=reg_data["email"],
+        phone=reg_data.get("phone"),
+        subscription_plan=SubscriptionPlan.TRIAL,
+        subscription_status=SubscriptionStatus.TRIAL,
+        trial_ends_at=datetime.now(timezone.utc) + timedelta(days=14),
+        max_shops=1,
+        max_users=2
+    )
+    db.add(tenant)
+    db.flush()
+    
+    # Create owner user
+    user = User(
+        uuid=str(uuid4()),
+        tenant_id=tenant.id,
+        email=reg_data["email"],
+        password_hash=pwd_context.hash(reg_data["password"]),
+        name=reg_data["owner_name"],
+        phone=reg_data.get("phone"),
+        role=UserRole.OWNER,
+        is_active=True,
+        is_verified=True
+    )
+    db.add(user)
+    db.commit()
+    
+    token = create_token(user.id, user.email, user.role.value, tenant.id)
+    
+    return {
+        "message": "Inscription réussie! Bienvenue sur SmartShopManager.",
+        "access_token": token,
+        "user": {
+            "id": user.id,
+            "email": user.email,
+            "name": user.name,
+            "role": user.role.value
+        },
+        "tenant": {
+            "id": tenant.id,
+            "company_name": tenant.company_name,
+            "subscription_plan": tenant.subscription_plan.value,
+            "trial_ends_at": tenant.trial_ends_at.isoformat() if tenant.trial_ends_at else None
+        }
+    }
+
+@api_router.post("/auth/resend-otp")
+async def resend_otp(email: EmailStr):
+    """Resend OTP code"""
+    if email not in otp_storage:
+        raise HTTPException(status_code=400, detail="Aucune demande d'inscription en cours pour cet email")
+    
+    # Generate new OTP
+    otp = generate_otp()
+    old_data = otp_storage[email]["data"]
+    store_otp(email, otp, old_data)
+    
+    logger.info(f"New OTP for {email}: {otp}")
+    
+    return {
+        "message": "Nouveau code envoyé",
+        "email": email,
+        "dev_otp": otp
+    }
+
 @api_router.post("/auth/register-tenant")
 async def register_tenant(data: TenantCreate, db: Session = Depends(get_db)):
-    """Register a new tenant (business owner)"""
+    """Register a new tenant (business owner) - Direct registration for backward compatibility"""
     # Check if email exists
     existing = db.query(User).filter(User.email == data.email).first()
     if existing:
