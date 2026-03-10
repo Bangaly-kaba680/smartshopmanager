@@ -1,4 +1,4 @@
-# StartupManager Pro - PRD
+# BINTRONIX - PRD
 
 ## Original Problem Statement
 Système complet de gestion de startup avec:
@@ -13,6 +13,11 @@ Système complet de gestion de startup avec:
 - Vue Finances
 - Centre d'Aide avec assistant IA
 - Paramètres
+
+## Branding
+- **Nom**: BINTRONIX
+- **Slogan**: Building the Future
+- **Logo**: /app/frontend/public/assets/bintronix-logo.png
 
 ## User Personas
 1. **CEO/PDG**: Accès complet à toutes les fonctionnalités, génération de documents RH, vue finances

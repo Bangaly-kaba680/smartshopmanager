@@ -47,7 +47,7 @@ ADMIN_NOTIFICATION_EMAIL = os.environ.get('ADMIN_NOTIFICATION_EMAIL', 'bangalyka
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 # Create the main app
-app = FastAPI(title="BINTRONIX API")
+app = FastAPI(title="StartupManager Pro API")
 
 # Create a router with the /api prefix
 api_router = APIRouter(prefix="/api")
@@ -2400,7 +2400,7 @@ async def export_employees_csv():
 
 @api_router.get("/")
 async def root():
-    return {"message": "BINTRONIX API", "version": "2.0.0", "database": "MongoDB"}
+    return {"message": "StartupManager Pro API", "version": "2.0.0", "database": "MongoDB"}
 
 # Include the router in the main app
 app.include_router(api_router)
@@ -2426,4 +2426,4 @@ async def startup_event():
     init_indexes()
     init_security()
     init_demo_data()
-    logger.info("BINTRONIX API started with MongoDB + Security")
+    logger.info("StartupManager Pro API started with MongoDB + Security")
