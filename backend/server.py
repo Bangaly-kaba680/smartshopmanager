@@ -176,6 +176,29 @@ class EmployeeCreate(BaseModel):
     salary: Optional[float] = None
     shop_id: int
 
+class OTPVerify(BaseModel):
+    email: EmailStr
+    otp: str
+
+class TenantRegisterRequest(BaseModel):
+    company_name: str
+    owner_name: str
+    email: EmailStr
+    password: str
+    phone: Optional[str] = None
+
+class IRPCreate(BaseModel):
+    title: str
+    description: str
+    severity: str = "medium"  # low, medium, high, critical
+    category: str = "technical"  # technical, security, performance, business
+    affected_area: Optional[str] = None
+
+class IRPUpdate(BaseModel):
+    status: Optional[str] = None
+    resolution: Optional[str] = None
+    root_cause: Optional[str] = None
+
 # ========================
 # AUTHENTICATION
 # ========================
