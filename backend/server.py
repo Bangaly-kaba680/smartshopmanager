@@ -1279,6 +1279,178 @@ async def health_check():
     }
 
 # ========================
+# IRP (Incident Response Plan) SYSTEM
+# ========================
+
+# In-memory IRP storage (in production, use database)
+irp_incidents = []
+
+@api_router.post("/irp/incidents")
+async def create_incident(
+    data: IRPCreate,
+    user: User = Depends(require_super_admin),
+    db: Session = Depends(get_db)
+):
+    """Create a new incident report"""
+    incident = {
+        "id": len(irp_incidents) + 1,
+        "uuid": str(uuid4()),
+        "title": data.title,
+        "description": data.description,
+        "severity": data.severity,
+        "category": data.category,
+        "affected_area": data.affected_area,
+        "status": "open",
+        "created_by": user.id,
+        "created_by_name": user.name,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "updated_at": datetime.now(timezone.utc).isoformat(),
+        "resolution": None,
+        "root_cause": None,
+        "timeline": [
+            {
+                "action": "Incident créé",
+                "by": user.name,
+                "at": datetime.now(timezone.utc).isoformat()
+            }
+        ]
+    }
+    irp_incidents.append(incident)
+    
+    return {"message": "Incident créé", "incident": incident}
+
+@api_router.get("/irp/incidents")
+async def list_incidents(
+    user: User = Depends(require_super_admin),
+    status: Optional[str] = None
+):
+    """List all incidents"""
+    if status:
+        filtered = [i for i in irp_incidents if i["status"] == status]
+        return {"total": len(filtered), "incidents": filtered}
+    return {"total": len(irp_incidents), "incidents": irp_incidents}
+
+@api_router.get("/irp/incidents/{incident_id}")
+async def get_incident(
+    incident_id: int,
+    user: User = Depends(require_super_admin)
+):
+    """Get incident details"""
+    incident = next((i for i in irp_incidents if i["id"] == incident_id), None)
+    if not incident:
+        raise HTTPException(status_code=404, detail="Incident non trouvé")
+    return incident
+
+@api_router.put("/irp/incidents/{incident_id}")
+async def update_incident(
+    incident_id: int,
+    data: IRPUpdate,
+    user: User = Depends(require_super_admin)
+):
+    """Update incident status/resolution"""
+    incident = next((i for i in irp_incidents if i["id"] == incident_id), None)
+    if not incident:
+        raise HTTPException(status_code=404, detail="Incident non trouvé")
+    
+    if data.status:
+        old_status = incident["status"]
+        incident["status"] = data.status
+        incident["timeline"].append({
+            "action": f"Status changé: {old_status} → {data.status}",
+            "by": user.name,
+            "at": datetime.now(timezone.utc).isoformat()
+        })
+    
+    if data.resolution:
+        incident["resolution"] = data.resolution
+        incident["timeline"].append({
+            "action": "Résolution ajoutée",
+            "by": user.name,
+            "at": datetime.now(timezone.utc).isoformat()
+        })
+    
+    if data.root_cause:
+        incident["root_cause"] = data.root_cause
+        incident["timeline"].append({
+            "action": "Cause racine identifiée",
+            "by": user.name,
+            "at": datetime.now(timezone.utc).isoformat()
+        })
+    
+    incident["updated_at"] = datetime.now(timezone.utc).isoformat()
+    
+    return {"message": "Incident mis à jour", "incident": incident}
+
+@api_router.post("/irp/incidents/{incident_id}/ai-analyze")
+async def ai_analyze_incident(
+    incident_id: int,
+    user: User = Depends(require_super_admin)
+):
+    """Use AI to analyze incident and suggest solutions"""
+    incident = next((i for i in irp_incidents if i["id"] == incident_id), None)
+    if not incident:
+        raise HTTPException(status_code=404, detail="Incident non trouvé")
+    
+    prompt = f"""
+    Analyse cet incident et propose une solution:
+    
+    Titre: {incident['title']}
+    Description: {incident['description']}
+    Sévérité: {incident['severity']}
+    Catégorie: {incident['category']}
+    Zone affectée: {incident.get('affected_area', 'Non spécifiée')}
+    
+    Fournis:
+    1. Analyse de la cause probable
+    2. Solution immédiate
+    3. Actions préventives pour l'avenir
+    4. Estimation du temps de résolution
+    """
+    
+    analysis = await generate_ai_response(prompt, "Tu es un expert en gestion d'incidents IT et résolution de problèmes. Réponds en français de manière structurée.")
+    
+    incident["ai_analysis"] = analysis
+    incident["timeline"].append({
+        "action": "Analyse IA effectuée",
+        "by": "AI Assistant",
+        "at": datetime.now(timezone.utc).isoformat()
+    })
+    
+    return {
+        "incident_id": incident_id,
+        "ai_analysis": analysis
+    }
+
+@api_router.get("/irp/stats")
+async def irp_stats(user: User = Depends(require_super_admin)):
+    """Get IRP statistics"""
+    total = len(irp_incidents)
+    open_count = len([i for i in irp_incidents if i["status"] == "open"])
+    in_progress = len([i for i in irp_incidents if i["status"] == "in_progress"])
+    resolved = len([i for i in irp_incidents if i["status"] == "resolved"])
+    
+    by_severity = {
+        "critical": len([i for i in irp_incidents if i["severity"] == "critical"]),
+        "high": len([i for i in irp_incidents if i["severity"] == "high"]),
+        "medium": len([i for i in irp_incidents if i["severity"] == "medium"]),
+        "low": len([i for i in irp_incidents if i["severity"] == "low"])
+    }
+    
+    by_category = {}
+    for i in irp_incidents:
+        cat = i["category"]
+        by_category[cat] = by_category.get(cat, 0) + 1
+    
+    return {
+        "total": total,
+        "open": open_count,
+        "in_progress": in_progress,
+        "resolved": resolved,
+        "by_severity": by_severity,
+        "by_category": by_category
+    }
+
+# ========================
 # MOUNT ROUTER
 # ========================
 
