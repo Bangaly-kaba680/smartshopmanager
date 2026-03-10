@@ -9,6 +9,7 @@ import AccessGatePage from "@/pages/AccessGatePage";
 import AccessActionPage from "@/pages/AccessActionPage";
 import AdminApprovePage from "@/pages/AdminApprovePage";
 import SecurityAdminPage from "@/pages/SecurityAdminPage";
+import BintronixWebsite from "@/pages/BintronixWebsite";
 import LoginPage from "@/pages/LoginPage";
 import RegisterPage from "@/pages/RegisterPage";
 import ForgotPasswordPage from "@/pages/ForgotPasswordPage";
@@ -280,6 +281,9 @@ function App() {
       <CurrencyProvider>
         <BrowserRouter>
           <Routes>
+            {/* BINTRONIX Corporate Website */}
+            <Route path="/bintronix" element={<BintronixWebsite />} />
+            
             {/* Public routes for admin approval (email links) */}
             <Route path="/admin/approve" element={<AdminApprovePage />} />
             <Route path="/admin/deny" element={<AdminApprovePage />} />
