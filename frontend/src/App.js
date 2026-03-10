@@ -11,6 +11,7 @@ import AdminApprovePage from "@/pages/AdminApprovePage";
 import SecurityAdminPage from "@/pages/SecurityAdminPage";
 import BintronixWebsite from "@/pages/BintronixWebsite";
 import BrandAssetsPage from "@/pages/BrandAssetsPage";
+import CEOControlCenter from "@/pages/CEOControlCenter";
 import LoginPage from "@/pages/LoginPage";
 import RegisterPage from "@/pages/RegisterPage";
 import ForgotPasswordPage from "@/pages/ForgotPasswordPage";
