@@ -14,6 +14,10 @@ import os
 import jwt
 import logging
 
+# Load environment variables
+from dotenv import load_dotenv
+load_dotenv()
+
 # Database imports
 from sqlalchemy.orm import Session
 from sqlalchemy import func, desc, and_, or_
