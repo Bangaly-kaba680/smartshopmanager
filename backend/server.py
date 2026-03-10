@@ -47,7 +47,7 @@ ADMIN_NOTIFICATION_EMAIL = os.environ.get('ADMIN_NOTIFICATION_EMAIL', 'bangalyka
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 # Create the main app
-app = FastAPI(title="StartupManager Pro API")
+app = FastAPI(title="BINTRONIX API")
 
 # Create a router with the /api prefix
 api_router = APIRouter(prefix="/api")
@@ -253,12 +253,12 @@ async def send_access_notification_email(request_name: str, request_email: str, 
 <body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f5f5f5;">
     <div style="background: linear-gradient(135deg, #6366f1 0%, #f97316 100%); padding: 30px; border-radius: 12px 12px 0 0; text-align: center;">
         <h1 style="color: white; margin: 0; font-size: 24px;">🔔 Nouvelle Demande d'Accès</h1>
-        <p style="color: rgba(255,255,255,0.9); margin: 10px 0 0 0;">StartupManager Pro</p>
+        <p style="color: rgba(255,255,255,0.9); margin: 10px 0 0 0;">BINTRONIX</p>
     </div>
     
     <div style="background: white; padding: 30px; border-radius: 0 0 12px 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
         <p style="color: #333; font-size: 16px; margin-bottom: 20px;">
-            Bonjour <strong>Bangaly Kaba</strong>,
+            Bonjour <strong>BINTRONIX</strong>,
         </p>
         
         <p style="color: #666; font-size: 14px;">
@@ -330,7 +330,7 @@ async def send_access_notification_email(request_name: str, request_email: str, 
     </div>
     
     <p style="color: #999; font-size: 11px; text-align: center; margin-top: 20px;">
-        Développé par Bangaly Kaba | StartupManager Pro
+        Développé par BINTRONIX | BINTRONIX
     </p>
 </body>
 </html>
@@ -392,7 +392,7 @@ def get_result_page(status: str, message: str) -> str:
     <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
-        <title>StartupManager Pro - Action Effectuée</title>
+        <title>BINTRONIX - Action Effectuée</title>
         <style>
             * {{ margin: 0; padding: 0; box-sizing: border-box; }}
             body {{ 
@@ -463,14 +463,14 @@ def get_result_page(status: str, message: str) -> str:
         <div class="card">
             <div class="logo">
                 <div class="logo-icon">BK</div>
-                <span style="font-weight: 600; color: #1f2937;">StartupManager Pro</span>
+                <span style="font-weight: 600; color: #1f2937;">BINTRONIX</span>
             </div>
             <div class="icon">{icon}</div>
             <h1 class="title">Action Effectuée</h1>
             <p class="message">{message}</p>
             <div class="footer">
                 Vous pouvez fermer cette page.<br>
-                Développé par <strong>Bangaly Kaba</strong>
+                Développé par <strong>BINTRONIX</strong>
             </div>
         </div>
     </body>
@@ -759,7 +759,7 @@ async def request_access(request: AccessRequest):
     
     return {
         "status": "submitted",
-        "message": "Demande envoyée! Bangaly Kaba va examiner votre demande.",
+        "message": "Demande envoyée! BINTRONIX va examiner votre demande.",
         "request_id": request_id
     }
 
@@ -1158,11 +1158,11 @@ async def send_access_request_notification(name: str, email: str, attempt_id: st
 <body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background: #f5f5f5;">
     <div style="background: linear-gradient(135deg, #6366f1, #f97316); padding: 20px; border-radius: 12px 12px 0 0; text-align: center;">
         <h1 style="color: white; margin: 0;">🔔 Demande d'Accès</h1>
-        <p style="color: rgba(255,255,255,0.9); margin: 5px 0 0;">StartupManager Pro</p>
+        <p style="color: rgba(255,255,255,0.9); margin: 5px 0 0;">BINTRONIX</p>
     </div>
     
     <div style="background: white; padding: 25px; border-radius: 0 0 12px 12px;">
-        <p style="color: #333;">Bonjour <strong>Bangaly Kaba</strong>,</p>
+        <p style="color: #333;">Bonjour <strong>BINTRONIX</strong>,</p>
         <p style="color: #666;">Une nouvelle personne souhaite accéder à votre application :</p>
         
         <div style="background: #f8f9fa; border-left: 4px solid #6366f1; padding: 15px; margin: 20px 0;">
@@ -1210,7 +1210,7 @@ async def send_access_request_notification(name: str, email: str, attempt_id: st
         </table>
         
         <p style="color: #999; font-size: 12px; text-align: center; margin-top: 25px; border-top: 1px solid #eee; padding-top: 15px;">
-            Vous êtes le Super Admin de StartupManager Pro.<br>
+            Vous êtes le Super Admin de BINTRONIX.<br>
             Toutes les actions sont enregistrées dans le journal d'audit.
         </p>
     </div>
@@ -1480,7 +1480,7 @@ async def generate_qr_code(batch_id: str):
     product = products_col().find_one({"id": batch["product_id"]})
     product_name = serialize_doc(product)["name"] if product else "Produit"
     
-    qr_data = f"StartupManager|{batch['lot_number']}|{product_name}|{batch['size']}|{batch['color']}"
+    qr_data = f"BINTRONIX|{batch['lot_number']}|{product_name}|{batch['size']}|{batch['color']}"
     
     qr = qrcode.QRCode(version=1, box_size=10, border=5)
     qr.add_data(qr_data)
@@ -1651,7 +1651,7 @@ async def generate_contract(request: AIContractRequest):
     - Poste: {employee['position']}
     - Salaire: {employee['salary']} GNF/mois
     - Type de contrat: {employee['contract_type']}
-    - Entreprise: {shop.get('name', 'StartupManager Pro')}
+    - Entreprise: {shop.get('name', 'BINTRONIX')}
     - Adresse: {shop.get('address', 'Dakar, Sénégal')}
     
     Le contrat doit être formel, complet et conforme au droit du travail sénégalais."""
@@ -1684,7 +1684,7 @@ async def generate_work_attestation(request: AIContractRequest):
     prompt = f"""Génère une attestation de travail professionnelle en français pour:
     - Employé: {employee['name']}
     - Poste: {employee['position']}
-    - Entreprise: {shop.get('name', 'StartupManager Pro')}
+    - Entreprise: {shop.get('name', 'BINTRONIX')}
     - Adresse: {shop.get('address', 'Dakar, Sénégal')}
     
     L'attestation doit certifier que l'employé travaille actuellement dans l'entreprise."""
@@ -1717,7 +1717,7 @@ async def generate_internship_attestation(request: AIContractRequest):
     prompt = f"""Génère une attestation de stage professionnelle en français pour:
     - Stagiaire: {employee['name']}
     - Poste: {employee['position']}
-    - Entreprise: {shop.get('name', 'StartupManager Pro')}
+    - Entreprise: {shop.get('name', 'BINTRONIX')}
     - Adresse: {shop.get('address', 'Dakar, Sénégal')}
     
     L'attestation doit certifier la réalisation du stage avec succès."""
@@ -1782,7 +1782,7 @@ async def download_document_pdf(document_id: str):
     width, height = A4
     
     p.setFont("Helvetica-Bold", 16)
-    p.drawString(2*cm, height - 2*cm, "StartupManager Pro")
+    p.drawString(2*cm, height - 2*cm, "BINTRONIX")
     
     p.setFont("Helvetica", 12)
     p.drawString(2*cm, height - 3*cm, f"Document: {doc['type'].replace('_', ' ').title()}")
@@ -1869,7 +1869,7 @@ async def generate_job_offer(request: AIMarketingRequest):
 
 @api_router.post("/ai/help")
 async def ai_help_assistant(request: AIHelpRequest):
-    prompt = f"""En tant qu'assistant pour l'application StartupManager Pro, réponds à cette question en français:
+    prompt = f"""En tant qu'assistant pour l'application BINTRONIX, réponds à cette question en français:
     
     Question: {request.question}
     
@@ -2212,7 +2212,7 @@ async def send_whatsapp_receipt(data: WhatsAppReceipt):
             "total": sale["total"],
             "items_count": len(items),
             "date": sale["created_at"],
-            "preview": f"🧾 *Reçu StartupManager Pro*\nTotal: {sale['total']:,.0f} GNF\nDate: {sale['created_at'][:10]}\nMerci de votre achat!"
+            "preview": f"🧾 *Reçu BINTRONIX*\nTotal: {sale['total']:,.0f} GNF\nDate: {sale['created_at'][:10]}\nMerci de votre achat!"
         }
     }
 
@@ -2232,7 +2232,7 @@ async def send_sms_receipt(data: WhatsAppReceipt):
             "sale_id": data.sale_id,
             "total": sale["total"],
             "date": sale["created_at"],
-            "preview": f"StartupManager Pro - Reçu: {sale['total']:,.0f} GNF. Merci!"
+            "preview": f"BINTRONIX - Reçu: {sale['total']:,.0f} GNF. Merci!"
         }
     }
 
@@ -2310,7 +2310,7 @@ async def export_sales_pdf():
     
     # Header
     p.setFont("Helvetica-Bold", 18)
-    p.drawString(2*cm, height - 2*cm, "Rapport des Ventes - StartupManager Pro")
+    p.drawString(2*cm, height - 2*cm, "Rapport des Ventes - BINTRONIX")
     
     p.setFont("Helvetica", 10)
     p.drawString(2*cm, height - 2.8*cm, f"Généré le: {datetime.now().strftime('%d/%m/%Y %H:%M')}")
@@ -2400,7 +2400,7 @@ async def export_employees_csv():
 
 @api_router.get("/")
 async def root():
-    return {"message": "StartupManager Pro API", "version": "2.0.0", "database": "MongoDB"}
+    return {"message": "BINTRONIX API", "version": "2.0.0", "database": "MongoDB"}
 
 # Include the router in the main app
 app.include_router(api_router)
@@ -2426,4 +2426,4 @@ async def startup_event():
     init_indexes()
     init_security()
     init_demo_data()
-    logger.info("StartupManager Pro API started with MongoDB + Security")
+    logger.info("BINTRONIX API started with MongoDB + Security")
