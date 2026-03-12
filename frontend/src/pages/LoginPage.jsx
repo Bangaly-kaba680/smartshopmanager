@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Sun, Moon, Eye, EyeOff, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { getLoginAd } from '@/config/marketingAds';
 
 const LoginPage = () => {
   const [email, setEmail] = useState('');
@@ -17,6 +18,9 @@ const LoginPage = () => {
   const { login } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
+  
+  // Get fixed marketing ad for login page
+  const ad = getLoginAd();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
