@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useTheme } from '@/App';
 import { authAPI } from '@/lib/api';
@@ -8,12 +8,24 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Sun, Moon, Loader2, ArrowLeft, Mail } from 'lucide-react';
 import { toast } from 'sonner';
+import { getRandomAd } from '@/config/marketingAds';
 
 const ForgotPasswordPage = () => {
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
   const { theme, toggleTheme } = useTheme();
+  
+  // Get random marketing ad
+  const [ad, setAd] = useState(() => getRandomAd([1]));
+  
+  // Change ad every 8 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setAd(getRandomAd([1]));
+    }, 8000);
+    return () => clearInterval(interval);
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
