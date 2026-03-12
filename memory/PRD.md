@@ -64,9 +64,9 @@ Système complet de gestion de startup multi-tenant SaaS avec:
 | CEO/Owner | admin@startup.com | admin123 |
 
 ## Liens
-- Application: https://ceocontrol.preview.emergentagent.com
-- Site BINTRONIX: https://ceocontrol.preview.emergentagent.com/bintronix
-- Inscription 2FA: https://ceocontrol.preview.emergentagent.com/register
+- Application: https://startup-manager-pro.preview.emergentagent.com
+- Site BINTRONIX: https://startup-manager-pro.preview.emergentagent.com/bintronix
+- Inscription 2FA: https://startup-manager-pro.preview.emergentagent.com/register
 
 ## Backlog
 - [ ] Intégrations paiement (Orange Money, Wave)
