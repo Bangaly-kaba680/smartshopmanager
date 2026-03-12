@@ -88,8 +88,39 @@
             </div>
         </a>
         <style>
-            #emergent-badge { display: none !important; visibility: hidden !important; opacity: 0 !important; }
+            #emergent-badge,
+            [id*="emergent"],
+            [class*="emergent"],
+            [data-testid*="emergent"],
+            a[href*="emergent"],
+            body > iframe {
+                display: none !important;
+                visibility: hidden !important;
+                opacity: 0 !important;
+                pointer-events: none !important;
+                width: 0 !important;
+                height: 0 !important;
+                overflow: hidden !important;
+                position: absolute !important;
+                left: -9999px !important;
+            }
         </style>
+        <script>
+            // Remove any injected branding iframes and elements
+            function removeBranding() {
+                document.querySelectorAll('body > iframe, body > div:not(#root):not(#bintronix-badge)').forEach(function(el) {
+                    if (el.tagName === 'IFRAME' || (el.textContent || '').toLowerCase().includes('emergent')) {
+                        el.remove();
+                    }
+                });
+            }
+            document.addEventListener('DOMContentLoaded', removeBranding);
+            setInterval(removeBranding, 500);
+            var obs = new MutationObserver(removeBranding);
+            document.addEventListener('DOMContentLoaded', function() {
+                obs.observe(document.body, { childList: true, subtree: true });
+            });
+        </script>
         <script>
             !(function (t, e) {
                 var o, n, p, r;

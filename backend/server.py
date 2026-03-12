@@ -1303,7 +1303,7 @@ class OTPVerify(BaseModel):
 
 @api_router.post("/auth/register-request")
 async def request_registration(data: TenantRegisterRequest):
-    """Step 1: Request registration with 2FA - sends OTP"""
+    """Step 1: Request registration with 2FA - sends OTP via email"""
     existing = users_col().find_one({"email": data.email})
     if existing:
         raise HTTPException(status_code=400, detail="Email déjà utilisé")
@@ -1320,14 +1320,57 @@ async def request_registration(data: TenantRegisterRequest):
         "phone": data.phone
     })
     
-    logging.info(f"OTP for {data.email}: {otp}")
+    logging.info(f"OTP generated for {data.email}")
     
-    return {
+    # Send OTP via Resend email
+    email_sent = False
+    try:
+        if resend.api_key and resend.api_key != 're_your_api_key_here':
+            html_content = f"""
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"></head>
+<body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f5f5f5;">
+    <div style="background: linear-gradient(135deg, #0a2e5c 0%, #10B981 100%); padding: 30px; border-radius: 12px 12px 0 0; text-align: center;">
+        <h1 style="color: white; margin: 0; font-size: 24px;">BINTRONIX</h1>
+        <p style="color: rgba(255,255,255,0.9); margin: 5px 0 0 0;">StartupManager Pro - Vérification 2FA</p>
+    </div>
+    <div style="background: white; padding: 30px; border-radius: 0 0 12px 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+        <p style="color: #333; font-size: 16px;">Bonjour <strong>{data.owner_name}</strong>,</p>
+        <p style="color: #666; font-size: 14px;">Voici votre code de vérification pour créer votre compte <strong>{data.company_name}</strong> :</p>
+        <div style="background: #f0fdf4; border: 2px solid #10B981; border-radius: 12px; padding: 20px; text-align: center; margin: 20px 0;">
+            <p style="font-size: 36px; font-weight: bold; color: #10B981; letter-spacing: 8px; margin: 0;">{otp}</p>
+        </div>
+        <p style="color: #999; font-size: 12px; text-align: center;">Ce code expire dans <strong>5 minutes</strong>. Ne le partagez avec personne.</p>
+    </div>
+    <p style="color: #999; font-size: 11px; text-align: center; margin-top: 20px;">BINTRONIX - Building the Future</p>
+</body>
+</html>"""
+            params = {
+                "from": SENDER_EMAIL,
+                "to": [data.email],
+                "subject": f"Code de vérification BINTRONIX - {otp}",
+                "html": html_content
+            }
+            await asyncio.to_thread(resend.Emails.send, params)
+            email_sent = True
+            logging.info(f"OTP email sent to {data.email}")
+    except Exception as e:
+        logging.error(f"Failed to send OTP email: {e}")
+    
+    response = {
         "message": "Code de vérification envoyé à votre email",
         "email": data.email,
         "otp_sent": True,
-        "dev_otp": otp  # Remove in production
+        "email_delivered": email_sent
     }
+    
+    # Include dev OTP only if email was not sent (fallback for development)
+    if not email_sent:
+        response["dev_otp"] = otp
+        response["message"] = "Email non envoyé. Code de développement affiché ci-dessous."
+    
+    return response
 
 @api_router.post("/auth/verify-registration")
 async def verify_registration(data: OTPVerify):
@@ -1364,16 +1407,16 @@ async def verify_registration(data: OTPVerify):
             "name": reg_data["owner_name"],
             "role": "owner"
         },
-        "company": {
-            "name": reg_data["company_name"],
+        "tenant": {
+            "company_name": reg_data["company_name"],
             "subscription_plan": "trial",
             "trial_ends_at": (datetime.now(timezone.utc) + timedelta(days=14)).isoformat()
         }
     }
 
 @api_router.post("/auth/resend-otp")
-async def resend_otp(email: str):
-    """Resend OTP code"""
+async def resend_otp_endpoint(email: str):
+    """Resend OTP code via email"""
     if email not in otp_storage:
         raise HTTPException(status_code=400, detail="Aucune demande d'inscription en cours")
     
@@ -1381,9 +1424,35 @@ async def resend_otp(email: str):
     old_data = otp_storage[email]["data"]
     store_otp(email, otp, old_data)
     
-    logging.info(f"New OTP for {email}: {otp}")
+    logging.info(f"New OTP generated for {email}")
     
-    return {"message": "Nouveau code envoyé", "email": email, "dev_otp": otp}
+    # Send via Resend
+    email_sent = False
+    try:
+        if resend.api_key and resend.api_key != 're_your_api_key_here':
+            owner_name = old_data.get("owner_name", "Utilisateur")
+            params = {
+                "from": SENDER_EMAIL,
+                "to": [email],
+                "subject": f"Nouveau code BINTRONIX - {otp}",
+                "html": f"""<div style="font-family: Arial; max-width: 400px; margin: 0 auto; padding: 20px; text-align: center;">
+                    <h2 style="color: #10B981;">BINTRONIX</h2>
+                    <p>Bonjour {owner_name}, voici votre nouveau code :</p>
+                    <div style="background: #f0fdf4; border: 2px solid #10B981; border-radius: 12px; padding: 20px; margin: 20px 0;">
+                        <p style="font-size: 36px; font-weight: bold; color: #10B981; letter-spacing: 8px; margin: 0;">{otp}</p>
+                    </div>
+                    <p style="color: #999; font-size: 12px;">Ce code expire dans 5 minutes.</p>
+                </div>"""
+            }
+            await asyncio.to_thread(resend.Emails.send, params)
+            email_sent = True
+    except Exception as e:
+        logging.error(f"Failed to resend OTP email: {e}")
+    
+    response = {"message": "Nouveau code envoyé", "email": email}
+    if not email_sent:
+        response["dev_otp"] = otp
+    return response
 
 @api_router.post("/auth/register", response_model=TokenResponse)
 async def register(user: UserRegister):
@@ -2729,7 +2798,7 @@ async def get_irp_stats(current_user: dict = Depends(get_current_user)):
 
 @api_router.get("/")
 async def root():
-    return {"message": "StartupManager Pro API", "version": "2.0.0", "database": "MongoDB"}
+    return {"message": "StartupManager Pro API", "version": "3.0.0", "database": "PostgreSQL"}
 
 # Include the router in the main app
 app.include_router(api_router)
@@ -2755,4 +2824,4 @@ async def startup_event():
     init_indexes()
     init_security()
     init_demo_data()
-    logger.info("StartupManager Pro API started with MongoDB + Security")
+    logger.info("StartupManager Pro API started with PostgreSQL + Security")
