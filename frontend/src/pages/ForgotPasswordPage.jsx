@@ -158,8 +158,8 @@ const ForgotPasswordPage = () => {
           {/* Top - New CEO Photo with Support Message */}
           <div className="text-center text-white">
             <img 
-              src="/assets/ceo-photo-2.jpeg" 
-              alt="CEO BINTRONIX" 
+              src="/assets/bintronix-logo.png" 
+              alt="BINTRONIX" 
               className="w-28 h-28 mx-auto rounded-full object-cover border-4 border-emerald-500 shadow-2xl mb-4"
             />
             <h2 className="text-2xl font-bold mb-2">Support BINTRONIX</h2>

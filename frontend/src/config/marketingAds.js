@@ -1,16 +1,16 @@
 // Marketing ads configuration for SmartShopManager by BINTRONIX
-// These ads will be randomly displayed on auth pages
+// Utilise les photos du CEO sur toutes les pages auth
 
 export const marketingAds = [
   {
     id: 1,
-    image: "/assets/business-bg-1.jpeg",
+    image: "/assets/ceo-photo-2.jpeg",
     title: "Gérez votre entreprise comme un pro",
     quote: "SmartShopManager a transformé la gestion de mon entreprise. Une plateforme complète et sécurisée.",
     author: "CEO BINTRONIX",
     role: "Fondateur",
     highlight: "Rejoignez +50 entreprises qui nous font confiance",
-    gradient: "from-emerald-600/90 via-emerald-800/80 to-slate-900/98"
+    gradient: "from-black/40 via-transparent to-black/60"
   },
   {
     id: 2,
@@ -20,37 +20,37 @@ export const marketingAds = [
     author: "SmartShopManager",
     role: "Module POS",
     highlight: "Scan QR - Multi-paiement - Reçus automatiques",
-    gradient: "from-cyan-600/90 via-blue-800/80 to-slate-900/98"
+    gradient: "from-black/40 via-transparent to-black/60"
   },
   {
     id: 3,
-    image: "/assets/business-bg-3.jpeg",
+    image: "/assets/ceo-photo-2.jpeg",
     title: "Intelligence Artificielle Intégrée",
     quote: "Notre IA génère automatiquement vos contrats RH, vos campagnes marketing et analyse vos ventes.",
     author: "BINTRONIX AI",
     role: "Technologie de pointe",
     highlight: "RH IA - Marketing IA - Analytics IA",
-    gradient: "from-purple-600/95 via-indigo-800/90 to-slate-900/98"
+    gradient: "from-black/40 via-transparent to-black/60"
   },
   {
     id: 4,
-    image: "/assets/business-bg-2.jpeg",
+    image: "/assets/ceo-photo-2.jpeg",
     title: "Gestion Multi-Boutiques",
     quote: "Gérez toutes vos boutiques depuis un seul tableau de bord. Vision globale, contrôle total.",
     author: "SmartShopManager Pro",
     role: "Enterprise Edition",
     highlight: "Plusieurs sites - Équipes multiples - Stats consolidées",
-    gradient: "from-orange-600/90 via-red-800/80 to-slate-900/98"
+    gradient: "from-black/40 via-transparent to-black/60"
   },
   {
     id: 5,
-    image: "/assets/business-bg-1.jpeg",
+    image: "/assets/ceo-photo-2.jpeg",
     title: "Support 24/7 Garanti",
     quote: "Notre équipe est disponible à tout moment pour vous accompagner. Votre succès est notre priorité.",
     author: "Support BINTRONIX",
     role: "Service Client",
     highlight: "Chat - Email - Téléphone - Formation",
-    gradient: "from-teal-600/90 via-green-800/80 to-slate-900/98"
+    gradient: "from-black/40 via-transparent to-black/60"
   },
   {
     id: 6,
@@ -60,27 +60,27 @@ export const marketingAds = [
     author: "BINTRONIX Security",
     role: "Protection maximale",
     highlight: "2FA - Chiffrement - Audit complet",
-    gradient: "from-slate-700/95 via-slate-800/90 to-slate-900/98"
+    gradient: "from-black/40 via-transparent to-black/60"
   },
   {
     id: 7,
-    image: "/assets/business-bg-3.jpeg",
+    image: "/assets/ceo-photo-2.jpeg",
     title: "Rapports & Analyses",
     quote: "Prenez des décisions éclairées avec nos rapports détaillés et nos analyses en temps réel.",
     author: "SmartShopManager",
     role: "Business Intelligence",
     highlight: "Dashboards - Tendances - Profits",
-    gradient: "from-yellow-600/90 via-amber-800/80 to-slate-900/98"
+    gradient: "from-black/40 via-transparent to-black/60"
   },
   {
     id: 8,
-    image: "/assets/business-bg-4.jpeg",
+    image: "/assets/ceo-photo-2.jpeg",
     title: "Essai Gratuit 14 Jours",
     quote: "Testez toutes les fonctionnalités sans engagement. Pas de carte bancaire requise.",
     author: "Offre Spéciale",
     role: "Démarrez maintenant",
     highlight: "Gratuit - Activation immédiate - Toutes fonctions",
-    gradient: "from-pink-600/90 via-rose-800/80 to-slate-900/98"
+    gradient: "from-black/40 via-transparent to-black/60"
   }
 ];
 
