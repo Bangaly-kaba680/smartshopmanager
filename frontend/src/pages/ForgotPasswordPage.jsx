@@ -137,31 +137,50 @@ const ForgotPasswordPage = () => {
         </div>
       </div>
 
-      {/* Right side - Image with CEO photo */}
-      <div className="hidden lg:block lg:w-1/2 relative">
-        <div 
-          className="absolute inset-0 bg-cover bg-center"
-          style={{ 
-            backgroundImage: 'url(https://customer-assets.emergentagent.com/job_shopflow-208/artifacts/qhnu6y1t_WhatsApp%20Image%202026-02-15%20at%2006.29.14%20%281%29.jpeg)',
-          }}
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-slate-900/95 via-slate-900/50 to-transparent" />
-        <div className="absolute inset-0 flex flex-col justify-center items-center p-12">
+      {/* Right side - Random Marketing Ad with CEO photo */}
+      <div className="hidden lg:block lg:w-1/2 relative overflow-hidden transition-all duration-500">
+        {ad.isLogo ? (
+          <div className={`absolute inset-0 bg-gradient-to-br ${ad.gradient}`}>
+            <div className="absolute inset-0 flex items-center justify-center">
+              <img src={ad.image} alt="BINTRONIX" className="w-48 h-48 rounded-3xl opacity-30" />
+            </div>
+          </div>
+        ) : (
+          <>
+            <div 
+              className="absolute inset-0 bg-cover bg-center transition-all duration-500"
+              style={{ backgroundImage: `url(${ad.image})` }}
+            />
+            <div className={`absolute inset-0 bg-gradient-to-t ${ad.gradient}`} />
+          </>
+        )}
+        <div className="absolute inset-0 flex flex-col justify-between p-12">
+          {/* Top - New CEO Photo with Support Message */}
           <div className="text-center text-white">
             <img 
-              src="/assets/ceo-photo.jpeg" 
+              src="/assets/ceo-photo-2.jpeg" 
               alt="CEO BINTRONIX" 
-              className="w-24 h-24 mx-auto rounded-full object-cover border-4 border-emerald-500 mb-4"
+              className="w-28 h-28 mx-auto rounded-full object-cover border-4 border-emerald-500 shadow-2xl mb-4"
             />
             <h2 className="text-2xl font-bold mb-2">Support BINTRONIX</h2>
-            <p className="text-slate-300 mb-4">
-              Notre équipe est disponible 24/7 pour vous aider.
+            <p className="text-slate-300">
+              Besoin d'aide? Notre équipe est là pour vous 24/7
             </p>
-            <div className="flex items-center justify-center gap-2">
-              <img src="/assets/bintronix-logo.png" alt="BINTRONIX" className="h-8 w-8 rounded" />
-              <span className="text-emerald-400 font-bold">BINTRONIX</span>
+          </div>
+          
+          {/* Bottom - Ad Content */}
+          <div className="text-white">
+            <div className="bg-black/40 backdrop-blur-sm rounded-2xl p-6 border border-white/10">
+              <h3 className="text-xl font-bold mb-2">{ad.title}</h3>
+              <p className="text-white/80 mb-3">{ad.highlight}</p>
+              <div className="flex items-center gap-3">
+                <img src="/assets/bintronix-logo.png" alt="BINTRONIX" className="w-10 h-10 rounded-lg" />
+                <div>
+                  <span className="text-emerald-400 font-bold block">{ad.author}</span>
+                  <span className="text-xs text-slate-400">{ad.role}</span>
+                </div>
+              </div>
             </div>
-            <p className="text-xs text-slate-400 mt-1">Building the Future</p>
           </div>
         </div>
       </div>
