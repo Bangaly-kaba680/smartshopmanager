@@ -161,25 +161,38 @@ const LoginPage = () => {
         </div>
       </div>
 
-      {/* Right side - Image */}
-      <div className="hidden lg:block lg:w-1/2 relative">
-        <div 
-          className="absolute inset-0 bg-cover bg-center"
-          style={{ 
-            backgroundImage: 'url(https://customer-assets.emergentagent.com/job_shopflow-208/artifacts/sc9e7l7a_WhatsApp%20Image%202026-02-15%20at%2006.29.14.jpeg)',
-          }}
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-slate-900/90 via-slate-900/40 to-transparent" />
-        <div className="absolute inset-0 flex flex-col justify-end p-12">
+      {/* Right side - Marketing Ad */}
+      <div className="hidden lg:block lg:w-1/2 relative overflow-hidden">
+        {ad.isLogo ? (
+          <div className={`absolute inset-0 bg-gradient-to-br ${ad.gradient}`}>
+            <div className="absolute inset-0 flex items-center justify-center">
+              <img src={ad.image} alt="BINTRONIX" className="w-48 h-48 rounded-3xl opacity-30" />
+            </div>
+          </div>
+        ) : (
+          <>
+            <div 
+              className="absolute inset-0 bg-cover bg-center"
+              style={{ backgroundImage: `url(${ad.image})` }}
+            />
+            <div className={`absolute inset-0 bg-gradient-to-t ${ad.gradient}`} />
+          </>
+        )}
+        <div className="absolute inset-0 flex flex-col justify-between p-12">
+          {/* Top - Title */}
+          <div className="text-white">
+            <h2 className="text-3xl font-bold mb-2">{ad.title}</h2>
+            <p className="text-lg text-white/80">{ad.highlight}</p>
+          </div>
+          
+          {/* Bottom - Quote */}
           <blockquote className="text-white">
-            <p className="text-xl italic mb-4">
-              "Gérer mes boutiques n'a jamais été aussi simple. StartupManager Pro a transformé ma façon de travailler."
-            </p>
-            <footer className="text-slate-300 flex items-center gap-3">
-              <img src="/assets/bintronix-logo.png" alt="BINTRONIX" className="w-12 h-12 rounded-lg object-cover" />
+            <p className="text-xl italic mb-4">"{ad.quote}"</p>
+            <footer className="flex items-center gap-3">
+              <img src="/assets/bintronix-logo.png" alt="BINTRONIX" className="w-12 h-12 rounded-lg object-cover border-2 border-emerald-500/50" />
               <div className="flex flex-col">
-                <span className="text-emerald-400 font-bold">BINTRONIX</span>
-                <span className="text-sm text-slate-400">Building the Future</span>
+                <span className="text-emerald-400 font-bold">{ad.author}</span>
+                <span className="text-sm text-slate-300">{ad.role}</span>
               </div>
             </footer>
           </blockquote>
