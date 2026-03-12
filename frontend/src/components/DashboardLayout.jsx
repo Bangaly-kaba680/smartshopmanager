@@ -6,12 +6,13 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { 
   LayoutDashboard, Store, Users, Package, Boxes, ShoppingCart, 
   DollarSign, Brain, Megaphone, HelpCircle, Settings,
-  LogOut, Sun, Moon, Menu, X, ChevronLeft, Shield, ShieldCheck, Building2, Command
+  LogOut, Sun, Moon, Menu, X, ChevronLeft, Shield, ShieldCheck, Building2, Command, AlertTriangle
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const menuItems = [
   { path: '/ceo-control', icon: Command, label: 'CEO Control', roles: ['super_admin'], superAdminOnly: true },
+  { path: '/irp', icon: AlertTriangle, label: 'IRP Incidents', roles: ['super_admin'], superAdminOnly: true },
   { path: '/dashboard', icon: LayoutDashboard, label: 'Dashboard', roles: ['super_admin', 'owner', 'ceo', 'manager', 'cashier', 'stock_manager'] },
   { path: '/security', icon: ShieldCheck, label: 'Sécurité', roles: ['super_admin', 'owner', 'ceo'], superAdminOnly: false },
   { path: '/brand-assets', icon: Building2, label: 'BINTRONIX Assets', roles: ['super_admin', 'owner', 'ceo'] },
