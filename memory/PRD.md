@@ -3,25 +3,27 @@
 ## Original Problem Statement
 Système complet de gestion de startup multi-tenant SaaS avec:
 - Architecture Multi-Tenant avec isolation des données
-- Authentification (Login/Register/Forgot Password/Mode Dark-Light)
+- Authentification 2FA (Double Authentification avec OTP)
 - CEO Control Center (Dashboard global pour Super Admin)
+- IRP (Incident Response Plan) avec analyse IA
 - Dashboard Propriétaire de boutique
 - POS (Point de Vente) pour caissiers
 - Gestion des Produits avec QR codes
 - Gestion du Stock/Lots avec génération de QR
 - Gestion des Employés
-- RH IA (génération de documents RH par IA - contrats, attestations de travail/stage)
-- Marketing IA (génération de contenu pour Facebook/WhatsApp)
+- RH IA (génération de documents RH par IA)
+- Marketing IA (génération de contenu)
 - Vue Finances
 - Support IA (tickets gérés via agent IA)
 - Centre d'Aide avec assistant IA
-- Paramètres et Abonnements
+- Site web BINTRONIX corporate
 
 ## Branding
 - **Nom Entreprise**: BINTRONIX
 - **Slogan**: Building the Future
 - **Nom Produit**: StartupManager Pro / SmartShopManager
 - **Logo**: /app/frontend/public/assets/bintronix-logo.png
+- **Photo CEO**: /app/frontend/public/assets/ceo-photo.jpeg
 
 ## Architecture Multi-Tenant (Mars 2026)
 
