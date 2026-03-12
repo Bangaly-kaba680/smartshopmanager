@@ -2528,6 +2528,184 @@ async def export_employees_csv():
     )
 
 # ========================
+# IRP (Incident Response Plan) ROUTES
+# ========================
+
+class IRPCreate(BaseModel):
+    title: str
+    description: str
+    severity: str = "medium"
+    category: str = "technical"
+    affected_area: Optional[str] = None
+
+class IRPUpdate(BaseModel):
+    status: Optional[str] = None
+    resolution: Optional[str] = None
+    root_cause: Optional[str] = None
+
+@api_router.post("/irp/incidents")
+async def create_irp_incident(data: IRPCreate, current_user: dict = Depends(get_current_user)):
+    """Create a new incident report"""
+    if current_user.get("role") not in ["ceo", "super_admin", "owner"]:
+        raise HTTPException(status_code=403, detail="Accès non autorisé")
+    
+    incident = {
+        "id": len(irp_incidents) + 1,
+        "uuid": str(uuid.uuid4()),
+        "title": data.title,
+        "description": data.description,
+        "severity": data.severity,
+        "category": data.category,
+        "affected_area": data.affected_area,
+        "status": "open",
+        "created_by": current_user.get("id"),
+        "created_by_name": current_user.get("name"),
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "updated_at": datetime.now(timezone.utc).isoformat(),
+        "resolution": None,
+        "root_cause": None,
+        "ai_analysis": None,
+        "timeline": [
+            {
+                "action": "Incident créé",
+                "by": current_user.get("name"),
+                "at": datetime.now(timezone.utc).isoformat()
+            }
+        ]
+    }
+    irp_incidents.append(incident)
+    
+    return {"message": "Incident créé", "incident": incident}
+
+@api_router.get("/irp/incidents")
+async def list_irp_incidents(status: Optional[str] = None, current_user: dict = Depends(get_current_user)):
+    """List all incidents"""
+    if current_user.get("role") not in ["ceo", "super_admin", "owner"]:
+        raise HTTPException(status_code=403, detail="Accès non autorisé")
+    
+    if status:
+        filtered = [i for i in irp_incidents if i["status"] == status]
+        return {"total": len(filtered), "incidents": filtered}
+    return {"total": len(irp_incidents), "incidents": irp_incidents}
+
+@api_router.get("/irp/incidents/{incident_id}")
+async def get_irp_incident(incident_id: int, current_user: dict = Depends(get_current_user)):
+    """Get incident details"""
+    incident = next((i for i in irp_incidents if i["id"] == incident_id), None)
+    if not incident:
+        raise HTTPException(status_code=404, detail="Incident non trouvé")
+    return incident
+
+@api_router.put("/irp/incidents/{incident_id}")
+async def update_irp_incident(incident_id: int, data: IRPUpdate, current_user: dict = Depends(get_current_user)):
+    """Update incident status/resolution"""
+    if current_user.get("role") not in ["ceo", "super_admin", "owner"]:
+        raise HTTPException(status_code=403, detail="Accès non autorisé")
+    
+    incident = next((i for i in irp_incidents if i["id"] == incident_id), None)
+    if not incident:
+        raise HTTPException(status_code=404, detail="Incident non trouvé")
+    
+    if data.status:
+        old_status = incident["status"]
+        incident["status"] = data.status
+        incident["timeline"].append({
+            "action": f"Status: {old_status} → {data.status}",
+            "by": current_user.get("name"),
+            "at": datetime.now(timezone.utc).isoformat()
+        })
+    
+    if data.resolution:
+        incident["resolution"] = data.resolution
+        incident["timeline"].append({
+            "action": "Résolution ajoutée",
+            "by": current_user.get("name"),
+            "at": datetime.now(timezone.utc).isoformat()
+        })
+    
+    if data.root_cause:
+        incident["root_cause"] = data.root_cause
+        incident["timeline"].append({
+            "action": "Cause racine identifiée",
+            "by": current_user.get("name"),
+            "at": datetime.now(timezone.utc).isoformat()
+        })
+    
+    incident["updated_at"] = datetime.now(timezone.utc).isoformat()
+    
+    return {"message": "Incident mis à jour", "incident": incident}
+
+@api_router.post("/irp/incidents/{incident_id}/ai-analyze")
+async def ai_analyze_irp_incident(incident_id: int, current_user: dict = Depends(get_current_user)):
+    """Use AI to analyze incident"""
+    if current_user.get("role") not in ["ceo", "super_admin", "owner"]:
+        raise HTTPException(status_code=403, detail="Accès non autorisé")
+    
+    incident = next((i for i in irp_incidents if i["id"] == incident_id), None)
+    if not incident:
+        raise HTTPException(status_code=404, detail="Incident non trouvé")
+    
+    prompt = f"""
+    Analyse cet incident et propose une solution:
+    
+    Titre: {incident['title']}
+    Description: {incident['description']}
+    Sévérité: {incident['severity']}
+    Catégorie: {incident['category']}
+    Zone affectée: {incident.get('affected_area', 'Non spécifiée')}
+    
+    Fournis:
+    1. Analyse de la cause probable
+    2. Solution immédiate
+    3. Actions préventives
+    4. Estimation du temps de résolution
+    """
+    
+    try:
+        llm_key = os.environ.get('EMERGENT_LLM_KEY', '')
+        if llm_key:
+            llm = LlmChat(api_key=llm_key, model="gemini/gemini-2.0-flash")
+            llm.add_message("system", "Tu es un expert en gestion d'incidents IT. Réponds en français.")
+            llm.add_message("user", prompt)
+            analysis = await llm.chat()
+        else:
+            analysis = "Service IA non disponible. Veuillez configurer EMERGENT_LLM_KEY."
+    except Exception as e:
+        analysis = f"Erreur IA: {str(e)}"
+    
+    incident["ai_analysis"] = analysis
+    incident["timeline"].append({
+        "action": "Analyse IA effectuée",
+        "by": "AI Assistant",
+        "at": datetime.now(timezone.utc).isoformat()
+    })
+    
+    return {"incident_id": incident_id, "ai_analysis": analysis}
+
+@api_router.get("/irp/stats")
+async def get_irp_stats(current_user: dict = Depends(get_current_user)):
+    """Get IRP statistics"""
+    total = len(irp_incidents)
+    open_count = len([i for i in irp_incidents if i["status"] == "open"])
+    in_progress = len([i for i in irp_incidents if i["status"] == "in_progress"])
+    resolved = len([i for i in irp_incidents if i["status"] == "resolved"])
+    
+    by_severity = {
+        "critical": len([i for i in irp_incidents if i["severity"] == "critical"]),
+        "high": len([i for i in irp_incidents if i["severity"] == "high"]),
+        "medium": len([i for i in irp_incidents if i["severity"] == "medium"]),
+        "low": len([i for i in irp_incidents if i["severity"] == "low"])
+    }
+    
+    return {
+        "total": total,
+        "open": open_count,
+        "in_progress": in_progress,
+        "resolved": resolved,
+        "by_severity": by_severity
+    }
+
+# ========================
 # ROOT ENDPOINT
 # ========================
 
