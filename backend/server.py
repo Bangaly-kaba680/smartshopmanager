@@ -158,8 +158,21 @@ def init_demo_data():
     """Initialize demo data if database is empty"""
     db = get_database()
     
-    # Check if already initialized
-    if users_col().count_documents({}) > 0:
+    # Always ensure super admin exists
+    super_admin = users_col().find_one({"email": ADMIN_EMAIL})
+    if not super_admin:
+        users_col().insert_one({
+            "id": str(uuid.uuid4()),
+            "name": "CEO BINTRONIX",
+            "email": ADMIN_EMAIL,
+            "password": pwd_context.hash("admin123"),
+            "role": "super_admin",
+            "created_at": datetime.now(timezone.utc).isoformat()
+        })
+        logging.info(f"Super admin created: {ADMIN_EMAIL}")
+    
+    # Check if demo data already exists
+    if users_col().count_documents({}) > 1:
         logging.info("Database already initialized with demo data")
         return
     
@@ -545,6 +558,7 @@ class UserResponse(BaseModel):
     email: str
     role: str
     shop_id: Optional[str] = None
+    tenant_id: Optional[str] = None
 
 class TokenResponse(BaseModel):
     access_token: str
@@ -767,6 +781,22 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
         raise HTTPException(status_code=401, detail="Utilisateur non trouvé")
     
     return serialize_doc(user)
+
+def get_shop_filter(user: dict) -> dict:
+    """Return a filter dict to scope queries by the user's shop.
+    Super Admin / CEO roles see ALL data (no filter).
+    Owners and below only see their own shop's data."""
+    role = user.get("role", "")
+    if role in ("super_admin", "ceo"):
+        return {}
+    shop_id = user.get("shop_id")
+    if shop_id:
+        return {"shop_id": shop_id}
+    return {}
+
+def is_admin_role(user: dict) -> bool:
+    """Check if user has admin-level access (sees all data)."""
+    return user.get("role") in ("super_admin", "ceo")
 
 # ========================
 # ACCESS CONTROL ROUTES
@@ -1374,14 +1404,17 @@ async def request_registration(data: TenantRegisterRequest):
 
 @api_router.post("/auth/verify-registration")
 async def verify_registration(data: OTPVerify):
-    """Step 2: Verify OTP and complete registration"""
+    """Step 2: Verify OTP and complete registration - creates tenant + shop"""
     reg_data, error = verify_otp(data.email, data.otp)
     if error:
         raise HTTPException(status_code=400, detail=error)
     
     user_id = str(uuid.uuid4())
+    tenant_id = str(uuid.uuid4())
+    shop_id = str(uuid.uuid4())
     hashed_password = pwd_context.hash(reg_data["password"])
     
+    # Create the user with tenant_id and shop_id
     users_col().insert_one({
         "id": user_id,
         "name": reg_data["owner_name"],
@@ -1390,11 +1423,34 @@ async def verify_registration(data: OTPVerify):
         "role": "owner",
         "company_name": reg_data["company_name"],
         "phone": reg_data.get("phone"),
+        "tenant_id": tenant_id,
+        "shop_id": shop_id,
         "is_verified": True,
         "subscription_plan": "trial",
         "trial_ends_at": (datetime.now(timezone.utc) + timedelta(days=14)).isoformat(),
         "created_at": datetime.now(timezone.utc).isoformat()
     })
+    
+    # Create a default shop for the new owner
+    shops_col().insert_one({
+        "id": shop_id,
+        "name": reg_data["company_name"],
+        "address": "",
+        "phone": reg_data.get("phone", ""),
+        "owner_id": user_id,
+        "tenant_id": tenant_id,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    })
+    
+    # Create default financial accounts for the shop
+    for acc_type in ["cash", "orange_money", "bank"]:
+        accounts_col().insert_one({
+            "id": str(uuid.uuid4()),
+            "shop_id": shop_id,
+            "tenant_id": tenant_id,
+            "type": acc_type,
+            "balance": 0
+        })
     
     token = create_access_token({"user_id": user_id, "role": "owner"})
     
@@ -1405,7 +1461,9 @@ async def verify_registration(data: OTPVerify):
             "id": user_id,
             "email": reg_data["email"],
             "name": reg_data["owner_name"],
-            "role": "owner"
+            "role": "owner",
+            "shop_id": shop_id,
+            "tenant_id": tenant_id
         },
         "tenant": {
             "company_name": reg_data["company_name"],
@@ -1508,7 +1566,8 @@ async def login(credentials: UserLogin):
             name=user["name"],
             email=user["email"],
             role=user["role"],
-            shop_id=user.get("shop_id")
+            shop_id=user.get("shop_id"),
+            tenant_id=user.get("tenant_id")
         )
     )
 
@@ -1522,15 +1581,22 @@ async def forgot_password(data: ForgotPassword):
 # ========================
 
 @api_router.get("/shops", response_model=List[ShopResponse])
-async def get_shops():
-    shops = list(shops_col().find())
+async def get_shops(current_user: dict = Depends(get_current_user)):
+    if is_admin_role(current_user):
+        shops = list(shops_col().find())
+    else:
+        shops = list(shops_col().find({"owner_id": current_user["id"]}))
+        if not shops:
+            shops = list(shops_col().find(get_shop_filter(current_user)))
     return [ShopResponse(**serialize_doc(s)) for s in shops]
 
 @api_router.post("/shops", response_model=ShopResponse)
-async def create_shop(shop: ShopCreate):
+async def create_shop(shop: ShopCreate, current_user: dict = Depends(get_current_user)):
     shop_id = str(uuid.uuid4())
     shop_data = {
         "id": shop_id,
+        "owner_id": current_user["id"],
+        "tenant_id": current_user.get("tenant_id", ""),
         **shop.model_dump()
     }
     shops_col().insert_one(shop_data)
@@ -1558,8 +1624,8 @@ async def get_shop(shop_id: str):
 # ========================
 
 @api_router.get("/products", response_model=List[ProductResponse])
-async def get_products(shop_id: Optional[str] = None, category: Optional[str] = None):
-    query = {}
+async def get_products(shop_id: Optional[str] = None, category: Optional[str] = None, current_user: dict = Depends(get_current_user)):
+    query = get_shop_filter(current_user)
     if shop_id:
         query["shop_id"] = shop_id
     if category:
@@ -1574,14 +1640,16 @@ async def get_products(shop_id: Optional[str] = None, category: Optional[str] = 
     return result
 
 @api_router.post("/products", response_model=ProductResponse)
-async def create_product(product: ProductCreate):
+async def create_product(product: ProductCreate, current_user: dict = Depends(get_current_user)):
     prod_id = str(uuid.uuid4())
-    shop = shops_col().find_one()
-    shop_id = serialize_doc(shop)["id"] if shop else None
+    user_shop_id = current_user.get("shop_id")
+    if not user_shop_id:
+        shop = shops_col().find_one()
+        user_shop_id = serialize_doc(shop)["id"] if shop else None
     
     prod_data = {
         "id": prod_id,
-        "shop_id": shop_id,
+        "shop_id": user_shop_id,
         **product.model_dump(),
         "created_at": datetime.now(timezone.utc).isoformat()
     }
@@ -1627,10 +1695,16 @@ async def delete_product(product_id: str):
 # ========================
 
 @api_router.get("/batches", response_model=List[BatchResponse])
-async def get_batches(product_id: Optional[str] = None):
-    query = {}
+async def get_batches(product_id: Optional[str] = None, current_user: dict = Depends(get_current_user)):
+    # Get products for this user's shop to filter batches
+    shop_filter = get_shop_filter(current_user)
     if product_id:
-        query["product_id"] = product_id
+        query = {"product_id": product_id}
+    elif shop_filter:
+        user_products = [serialize_doc(p)["id"] for p in products_col().find(shop_filter)]
+        query = {"product_id": {"$in": user_products}} if user_products else {}
+    else:
+        query = {}
     
     batches = list(batches_col().find(query))
     result = []
@@ -1719,8 +1793,8 @@ async def generate_qr_code(batch_id: str):
 # ========================
 
 @api_router.get("/sales", response_model=List[SaleResponse])
-async def get_sales(shop_id: Optional[str] = None):
-    query = {}
+async def get_sales(shop_id: Optional[str] = None, current_user: dict = Depends(get_current_user)):
+    query = get_shop_filter(current_user)
     if shop_id:
         query["shop_id"] = shop_id
     
@@ -1734,12 +1808,13 @@ async def get_sales(shop_id: Optional[str] = None):
     return result
 
 @api_router.post("/sales", response_model=SaleResponse)
-async def create_sale(sale: SaleCreate):
+async def create_sale(sale: SaleCreate, current_user: dict = Depends(get_current_user)):
     sale_id = str(uuid.uuid4())
-    shop = shops_col().find_one()
-    shop_id = serialize_doc(shop)["id"] if shop else None
-    user = users_col().find_one()
-    user_id = serialize_doc(user)["id"] if user else "unknown"
+    user_shop_id = current_user.get("shop_id")
+    if not user_shop_id:
+        shop = shops_col().find_one()
+        user_shop_id = serialize_doc(shop)["id"] if shop else None
+    user_id = current_user["id"]
     
     total = 0
     sale_items = []
@@ -1776,7 +1851,7 @@ async def create_sale(sale: SaleCreate):
     
     sale_data = {
         "id": sale_id,
-        "shop_id": shop_id,
+        "shop_id": user_shop_id,
         "user_id": user_id,
         "total": total,
         "payment_method": sale.payment_method,
@@ -1789,7 +1864,7 @@ async def create_sale(sale: SaleCreate):
     acc_type_map = {"cash": "cash", "orange_money": "orange_money", "card": "bank"}
     acc_type = acc_type_map.get(sale.payment_method, "cash")
     accounts_col().update_one(
-        {"shop_id": shop_id, "type": acc_type},
+        {"shop_id": user_shop_id, "type": acc_type},
         {"$inc": {"balance": total}}
     )
     
@@ -1800,8 +1875,8 @@ async def create_sale(sale: SaleCreate):
 # ========================
 
 @api_router.get("/employees", response_model=List[EmployeeResponse])
-async def get_employees(shop_id: Optional[str] = None):
-    query = {}
+async def get_employees(shop_id: Optional[str] = None, current_user: dict = Depends(get_current_user)):
+    query = get_shop_filter(current_user)
     if shop_id:
         query["shop_id"] = shop_id
     
@@ -1809,14 +1884,16 @@ async def get_employees(shop_id: Optional[str] = None):
     return [EmployeeResponse(**serialize_doc(e)) for e in employees]
 
 @api_router.post("/employees", response_model=EmployeeResponse)
-async def create_employee(employee: EmployeeCreate):
+async def create_employee(employee: EmployeeCreate, current_user: dict = Depends(get_current_user)):
     emp_id = str(uuid.uuid4())
-    shop = shops_col().find_one()
-    shop_id = serialize_doc(shop)["id"] if shop else None
+    user_shop_id = current_user.get("shop_id")
+    if not user_shop_id:
+        shop = shops_col().find_one()
+        user_shop_id = serialize_doc(shop)["id"] if shop else None
     
     emp_data = {
         "id": emp_id,
-        "shop_id": shop_id,
+        "shop_id": user_shop_id,
         **employee.model_dump()
     }
     employees_col().insert_one(emp_data)
@@ -1956,7 +2033,7 @@ async def generate_internship_attestation(request: AIContractRequest):
     return DocumentResponse(**doc_data, employee_name=employee["name"])
 
 @api_router.get("/documents", response_model=List[DocumentResponse])
-async def get_documents(employee_id: Optional[str] = None):
+async def get_documents(employee_id: Optional[str] = None, current_user: dict = Depends(get_current_user)):
     query = {}
     if employee_id:
         query["employee_id"] = employee_id
@@ -2278,8 +2355,8 @@ async def generate_ai_suggestion(context: dict):
 # ========================
 
 @api_router.get("/accounts", response_model=List[AccountResponse])
-async def get_accounts(shop_id: Optional[str] = None):
-    query = {}
+async def get_accounts(shop_id: Optional[str] = None, current_user: dict = Depends(get_current_user)):
+    query = get_shop_filter(current_user)
     if shop_id:
         query["shop_id"] = shop_id
     
@@ -2479,34 +2556,42 @@ async def send_whatsapp_promo(phone: str, message: str):
 # ========================
 
 @api_router.get("/dashboard/stats")
-async def get_dashboard_stats():
-    shop = shops_col().find_one()
-    shop_id = serialize_doc(shop)["id"] if shop else None
+async def get_dashboard_stats(current_user: dict = Depends(get_current_user)):
+    shop_filter = get_shop_filter(current_user)
     
     today = datetime.now(timezone.utc).date().isoformat()
     today_sales = sum(
-        s["total"] for s in sales_col().find()
+        s["total"] for s in sales_col().find(shop_filter)
         if serialize_doc(s)["created_at"][:10] == today
     )
     
     current_month = datetime.now(timezone.utc).strftime("%Y-%m")
     monthly_revenue = sum(
-        s["total"] for s in sales_col().find()
+        s["total"] for s in sales_col().find(shop_filter)
         if serialize_doc(s)["created_at"][:7] == current_month
     )
     
-    cash_balance = sum(serialize_doc(a)["balance"] for a in accounts_col().find({"type": "cash"}))
-    orange_balance = sum(serialize_doc(a)["balance"] for a in accounts_col().find({"type": "orange_money"}))
-    bank_balance = sum(serialize_doc(a)["balance"] for a in accounts_col().find({"type": "bank"}))
+    acc_filter = shop_filter.copy()
+    cash_balance = sum(serialize_doc(a)["balance"] for a in accounts_col().find({**acc_filter, "type": "cash"}))
+    orange_balance = sum(serialize_doc(a)["balance"] for a in accounts_col().find({**acc_filter, "type": "orange_money"}))
+    bank_balance = sum(serialize_doc(a)["balance"] for a in accounts_col().find({**acc_filter, "type": "bank"}))
     
-    recent_sales = list(sales_col().find().sort("created_at", -1).limit(5))
+    recent_sales = list(sales_col().find(shop_filter).sort("created_at", -1).limit(5))
+    
+    # Shop count: owners see their own shops, admins see all
+    if is_admin_role(current_user):
+        shop_count = shops_col().count_documents({})
+    else:
+        shop_count = shops_col().count_documents({"owner_id": current_user["id"]})
+        if shop_count == 0:
+            shop_count = shops_col().count_documents(shop_filter)
     
     return {
         "today_sales": today_sales,
         "monthly_revenue": monthly_revenue,
-        "total_shops": shops_col().count_documents({}),
-        "total_products": products_col().count_documents({}),
-        "total_employees": employees_col().count_documents({}),
+        "total_shops": shop_count,
+        "total_products": products_col().count_documents(shop_filter),
+        "total_employees": employees_col().count_documents(shop_filter),
         "cash_balance": cash_balance,
         "orange_money_balance": orange_balance,
         "bank_balance": bank_balance,
@@ -2518,9 +2603,10 @@ async def get_dashboard_stats():
 # ========================
 
 @api_router.get("/export/sales/pdf")
-async def export_sales_pdf():
+async def export_sales_pdf(current_user: dict = Depends(get_current_user)):
     """Export sales report as PDF"""
-    sales = list(sales_col().find().sort("created_at", -1))
+    shop_filter = get_shop_filter(current_user)
+    sales = list(sales_col().find(shop_filter).sort("created_at", -1))
     
     buffer = BytesIO()
     p = canvas.Canvas(buffer, pagesize=A4)
@@ -2576,9 +2662,10 @@ async def export_sales_pdf():
     )
 
 @api_router.get("/export/products/csv")
-async def export_products_csv():
+async def export_products_csv(current_user: dict = Depends(get_current_user)):
     """Export products as CSV"""
-    products = list(products_col().find())
+    shop_filter = get_shop_filter(current_user)
+    products = list(products_col().find(shop_filter))
     
     csv_content = "ID,Nom,Catégorie,Prix (GNF),Stock,Date Création\n"
     for prod in products:
@@ -2595,9 +2682,10 @@ async def export_products_csv():
     )
 
 @api_router.get("/export/employees/csv")
-async def export_employees_csv():
+async def export_employees_csv(current_user: dict = Depends(get_current_user)):
     """Export employees as CSV"""
-    employees = list(employees_col().find())
+    shop_filter = get_shop_filter(current_user)
+    employees = list(employees_col().find(shop_filter))
     
     csv_content = "ID,Nom,Poste,Salaire (GNF),Type Contrat\n"
     for emp in employees:

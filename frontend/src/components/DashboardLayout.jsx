@@ -14,8 +14,8 @@ const menuItems = [
   { path: '/ceo-control', icon: Command, label: 'CEO Control', roles: ['super_admin'], superAdminOnly: true },
   { path: '/irp', icon: AlertTriangle, label: 'IRP Incidents', roles: ['super_admin'], superAdminOnly: true },
   { path: '/dashboard', icon: LayoutDashboard, label: 'Dashboard', roles: ['super_admin', 'owner', 'ceo', 'manager', 'cashier', 'stock_manager'] },
-  { path: '/security', icon: ShieldCheck, label: 'Sécurité', roles: ['super_admin', 'owner', 'ceo'], superAdminOnly: false },
-  { path: '/brand-assets', icon: Building2, label: 'BINTRONIX Assets', roles: ['super_admin', 'owner', 'ceo'] },
+  { path: '/security', icon: ShieldCheck, label: 'Sécurité', roles: ['super_admin', 'ceo'] },
+  { path: '/brand-assets', icon: Building2, label: 'BINTRONIX Assets', roles: ['super_admin', 'ceo'] },
   { path: '/shops', icon: Store, label: 'Boutiques', roles: ['super_admin', 'owner', 'ceo'] },
   { path: '/employees', icon: Users, label: 'Employés', roles: ['super_admin', 'owner', 'ceo', 'manager'] },
   { path: '/products', icon: Package, label: 'Produits', roles: ['super_admin', 'owner', 'ceo', 'manager', 'cashier', 'stock_manager'] },
@@ -126,7 +126,17 @@ const DashboardLayout = ({ children, title }) => {
           {sidebarOpen && (
             <div className="mb-3 px-3">
               <p className="text-sm font-medium text-foreground truncate">{user?.name}</p>
-              <p className="text-xs text-muted-foreground capitalize">{user?.role}</p>
+              <div className="flex items-center gap-2 mt-1">
+                <span className={cn(
+                  "text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wide",
+                  userRole === 'super_admin' ? 'bg-red-500/20 text-red-400' :
+                  userRole === 'ceo' ? 'bg-amber-500/20 text-amber-400' :
+                  userRole === 'owner' ? 'bg-emerald-500/20 text-emerald-400' :
+                  'bg-blue-500/20 text-blue-400'
+                )}>
+                  {userRole === 'super_admin' ? 'Super Admin' : userRole}
+                </span>
+              </div>
             </div>
           )}
           <Button 

@@ -1,0 +1,126 @@
+{
+  "summary": "Tenant Data Isolation & RBAC Testing Complete - All features working correctly. Super Admin sees CEO Control + IRP menus and all data (8 products, 4 employees, financial balances > 0). Owner sees filtered menus and isolated data (0 products, 0 employees, 0 GNF balances). PostgreSQL database confirmed.",
+
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+
+  "frontend_issues": {
+    "ui_bugs": [
+      {
+        "component": "ForgotPasswordPage",
+        "issue": "BINTRONIX logo not displaying inside the rounded circle on right panel - shows empty green circle border",
+        "selector": "img[src='/assets/bintronix-logo.png'].rounded-full",
+        "priority": "LOW",
+        "note": "Logo file exists, likely CSS/background overlap issue"
+      }
+    ],
+    "integration_issues": [],
+    "design_issues": [
+      {
+        "screen": "ForgotPasswordPage",
+        "issues": ["Logo in support section not visible, only emerald border shown"]
+      }
+    ]
+  },
+
+  "passed_tests": {
+    "backend": [
+      "API root endpoint returns database: PostgreSQL ✅",
+      "Super Admin login (bangalykaba635@gmail.com / admin123) - role=super_admin ✅",
+      "CEO login (admin@startup.com / admin123) - role=ceo ✅",
+      "Owner login (testowner@example.com / password123) - role=owner ✅",
+      "Invalid credentials rejected with 401 ✅",
+      "Super Admin dashboard stats: >=8 products, >=4 employees, financial balances > 0 ✅",
+      "Super Admin products API: returns >=8 products ✅",
+      "Super Admin employees API: returns >=4 employees ✅",
+      "CEO dashboard stats: sees all data like super admin ✅",
+      "CEO products API: returns >=8 products ✅",
+      "Owner dashboard stats ISOLATED: 0 products, 0 employees, 0 GNF ✅",
+      "Owner products API ISOLATED: returns 0 products ✅",
+      "Owner employees API ISOLATED: returns 0 employees ✅",
+      "2FA registration request generates OTP ✅",
+      "Owner account creation via 2FA verification ✅",
+      "Data isolation comparison: Admin sees more data than Owner ✅"
+    ],
+    "frontend": [
+      "Login page loads correctly ✅",
+      "Login page shows BINTRONIX logo and branding ✅",
+      "Login page CEO photo visible without blur ✅",
+      "Super Admin login redirects to /dashboard ✅",
+      "Super Admin sidebar shows CEO Control menu ✅",
+      "Super Admin sidebar shows IRP Incidents menu ✅",
+      "Super Admin dashboard shows financial data (750K Orange, 2.5M Bank, 500K Cash) ✅",
+      "Owner login redirects to /dashboard ✅",
+      "Owner sidebar does NOT show CEO Control menu (RBAC working) ✅",
+      "Owner sidebar does NOT show IRP menu (RBAC working) ✅",
+      "Owner dashboard shows 0 GNF for all financial accounts (isolation working) ✅",
+      "Register page loads with marketing ads ✅",
+      "Register page shows 2FA verification indicator ✅",
+      "Forgot password page loads ✅"
+    ]
+  },
+
+  "test_report_links": [
+    "/app/backend/tests/test_tenant_isolation.py",
+    "/app/test_reports/pytest/pytest_results_iteration4.xml"
+  ],
+
+  "action_items": [
+    "OPTIONAL: Fix BINTRONIX logo display issue on Forgot Password page right panel (emerald circle shows but logo image not visible)"
+  ],
+
+  "critical_code_review_comments": [
+    "Tenant isolation via get_shop_filter() working correctly - owners only see their shop_id data",
+    "RBAC menu filtering in DashboardLayout.jsx correctly hides CEO Control and IRP for non-super_admin roles",
+    "PostgreSQL JSONB adapter successfully provides MongoDB-like interface",
+    "2FA registration creates tenant + shop + 3 financial accounts automatically",
+    "Financial balances correctly isolated per tenant"
+  ],
+
+  "updated_files": [
+    "/app/backend/tests/test_tenant_isolation.py"
+  ],
+
+  "success_rate": {
+    "backend": "100% (17/17 tests passed)",
+    "frontend": "95% (all critical flows working, 1 minor logo display issue)"
+  },
+
+  "test_credentials": {
+    "super_admin": "bangalykaba635@gmail.com / admin123 (sees all data)",
+    "ceo": "admin@startup.com / admin123 (sees all data)",
+    "owner": "testowner@example.com / password123 (sees only their isolated data)"
+  },
+
+  "verified_features": {
+    "tenant_data_isolation": {
+      "status": "WORKING",
+      "detail": "Owner sees 0 products, 0 employees, 0 GNF - completely isolated from demo data"
+    },
+    "rbac_menu_filtering": {
+      "status": "WORKING",
+      "detail": "CEO Control and IRP menus only visible for super_admin role"
+    },
+    "dashboard_stats_scoping": {
+      "status": "WORKING",
+      "detail": "Super admin/CEO see all data, Owner sees only their shop's data"
+    },
+    "registration_2fa": {
+      "status": "WORKING",
+      "detail": "Creates tenant + shop + accounts automatically"
+    }
+  },
+
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+
+  "context_for_next_testing_agent": "Tenant isolation fully verified. Owner role (testowner@example.com) now exists and shows isolated data (0 products, 0 employees, 0 GNF). Super Admin and CEO see all demo data. RBAC menus filter correctly. Only minor issue is BINTRONIX logo not displaying in rounded circle on forgot-password page.",
+
+  "mocked_apis": {
+    "Payments (Orange Money, Card, Cash)": "SIMULATED - returns fake transaction IDs",
+    "WhatsApp/SMS receipts": "SIMULATED - not actually sent",
+    "AI features": "Working via Emergent LLM API"
+  }
+}
