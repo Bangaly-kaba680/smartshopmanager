@@ -753,6 +753,21 @@ def verify_token(token: str):
     except jwt.InvalidTokenError:
         raise HTTPException(status_code=401, detail="Token invalide")
 
+# Security dependency for protected routes
+security = HTTPBearer(auto_error=False)
+
+async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    """Get current user from JWT token"""
+    if not credentials:
+        raise HTTPException(status_code=401, detail="Non authentifié")
+    
+    payload = verify_token(credentials.credentials)
+    user = users_col().find_one({"id": payload.get("user_id")})
+    if not user:
+        raise HTTPException(status_code=401, detail="Utilisateur non trouvé")
+    
+    return serialize_doc(user)
+
 # ========================
 # ACCESS CONTROL ROUTES
 # ========================
