@@ -25,62 +25,53 @@ Système complet de gestion de startup multi-tenant SaaS avec:
 - **Logo**: /app/frontend/public/assets/bintronix-logo.png
 - **Photo CEO**: /app/frontend/public/assets/ceo-photo.jpeg
 
-## Architecture Multi-Tenant (Mars 2026)
+## Architecture (Mars 2026)
 
 ### Rôles et Accès
 | Rôle | Niveau | Accès |
 |------|--------|-------|
-| **Super Admin** | Global | Toutes les données, CEO Control Center, Support IA |
-| **Owner** | Tenant | Ses boutiques, employés, ventes uniquement |
-| **Manager** | Boutique | Gestion produits, stock (pas finances) |
+| **Super Admin** | Global | CEO Control, IRP, Toutes données |
+| **Owner** | Tenant | Ses boutiques uniquement |
+| **Manager** | Boutique | Gestion produits, stock |
 | **Cashier** | Limité | POS uniquement |
-| **Stock Manager** | Limité | Stock uniquement |
-| **Viewer** | Lecture | Consultation uniquement |
 
-### Isolation des Données
-- Chaque abonné a un `tenant_id` unique
-- Toutes les requêtes sont filtrées par tenant
-- Un propriétaire ne voit JAMAIS les données d'un autre
+### Sécurité 2FA
+- Inscription avec code OTP à 6 chiffres
+- Vérification par email
+- Expiration OTP : 5 minutes
 
-### Plans d'Abonnement
-| Plan | Prix/mois | Boutiques | Utilisateurs | Fonctionnalités |
-|------|-----------|-----------|--------------|-----------------|
-| Trial | Gratuit | 1 | 2 | 14 jours |
-| Starter | 50,000 GNF | 1 | 2 | POS Basic |
-| Business | 150,000 GNF | 3 | 10 | IA, Rapports |
-| Enterprise | 500,000 GNF | Illimité | Illimité | Tout |
+### IRP (Incident Response Plan)
+- Création d'incidents
+- Sévérité : Critique, Haute, Moyenne, Basse
+- Catégories : Technique, Sécurité, Performance, Business
+- Analyse IA automatique
+- Timeline des actions
 
-## Base de Données PostgreSQL
-Tables principales:
-- tenants (abonnés)
-- users (avec tenant_id et rôle)
-- shops (boutiques par tenant)
-- products (produits par boutique)
-- sales, sale_items (transactions)
-- employees (employés)
-- support_tickets (tickets support)
-- subscriptions (historique abonnements)
-- audit_logs (journal d'audit)
+## Implémenté ✅
+- [x] Inscription 2FA avec OTP
+- [x] CEO Control Center
+- [x] IRP - Gestion des Incidents avec IA
+- [x] Photo CEO sur pages auth
+- [x] Site web BINTRONIX
+- [x] Brand Assets (documents, réseaux sociaux)
+- [x] Multi-rôles utilisateur
+- [x] Super Admin créé (bangalykaba635@gmail.com)
 
-## Implémenté
-- [x] Migration MongoDB → PostgreSQL
-- [x] Architecture multi-tenant
-- [x] CEO Control Center avec 4 onglets
-- [x] Système d'inscription tenant avec période d'essai
-- [x] Isolation des données par tenant_id
-- [x] Support IA pour tickets
-- [x] 6 rôles utilisateur avec permissions
-- [x] Site web BINTRONIX (/bintronix)
-- [x] Brand Assets (documents, réseaux sociaux, pitch)
+## Identifiants
+| Rôle | Email | Password |
+|------|-------|----------|
+| Super Admin | bangalykaba635@gmail.com | admin123 |
+| CEO/Owner | admin@startup.com | admin123 |
 
-## En Cours
-- [ ] Application Caissier tablette (web responsive)
-- [ ] Intégrations paiement (Orange Money, Wave)
+## Liens
+- Application: https://ceocontrol.preview.emergentagent.com
+- Site BINTRONIX: https://ceocontrol.preview.emergentagent.com/bintronix
+- Inscription 2FA: https://ceocontrol.preview.emergentagent.com/register
 
 ## Backlog
-- [ ] Migration vers Flutter pour l'app caissier native
-- [ ] E-commerce intégré
-- [ ] Marketplace fournisseurs
+- [ ] Intégrations paiement (Orange Money, Wave)
+- [ ] App Caissier Flutter native
+- [ ] Envoi réel OTP par email/SMS
 
 ## User Personas
 1. **CEO/PDG**: Accès complet à toutes les fonctionnalités, génération de documents RH, vue finances
