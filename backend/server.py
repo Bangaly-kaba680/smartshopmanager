@@ -2680,10 +2680,12 @@ async def ai_analyze_irp_incident(incident_id: int, current_user: dict = Depends
     try:
         llm_key = os.environ.get('EMERGENT_LLM_KEY', '')
         if llm_key:
-            llm = LlmChat(api_key=llm_key, model="gemini/gemini-2.0-flash")
-            llm.add_message("system", "Tu es un expert en gestion d'incidents IT. Réponds en français.")
-            llm.add_message("user", prompt)
-            analysis = await llm.chat()
+            llm = LlmChat(
+                api_key=llm_key, 
+                session_id=str(uuid.uuid4()),
+                system_message="Tu es un expert en gestion d'incidents IT. Réponds en français de manière structurée."
+            )
+            analysis = await llm.chat(prompt)
         else:
             analysis = "Service IA non disponible. Veuillez configurer EMERGENT_LLM_KEY."
     except Exception as e:
