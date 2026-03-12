@@ -325,6 +325,9 @@ function App() {
                   {/* CEO Control Center - Super Admin Only */}
                   <Route path="/ceo-control" element={<ProtectedRoute requireSuperAdmin><CEOControlCenter /></ProtectedRoute>} />
                   
+                  {/* IRP - Incident Response Plan - Super Admin Only */}
+                  <Route path="/irp" element={<ProtectedRoute requireSuperAdmin><IRPPage /></ProtectedRoute>} />
+                  
                   {/* Brand Assets - BINTRONIX */}
                   <Route path="/brand-assets" element={<ProtectedRoute requireCEO><BrandAssetsPage /></ProtectedRoute>} />
                   
