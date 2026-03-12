@@ -55,6 +55,43 @@ api_router = APIRouter(prefix="/api")
 # Admin email for access control
 ADMIN_EMAIL = "bangalykaba635@gmail.com"
 
+# OTP Storage for 2FA (in production, use Redis)
+import random
+import string
+otp_storage = {}
+
+def generate_otp(length=6):
+    """Generate a random OTP code"""
+    return ''.join(random.choices(string.digits, k=length))
+
+def store_otp(email: str, otp: str, data: dict = None):
+    """Store OTP with expiration (5 minutes)"""
+    otp_storage[email] = {
+        "otp": otp,
+        "data": data,
+        "expires": datetime.now(timezone.utc) + timedelta(minutes=5)
+    }
+
+def verify_otp(email: str, otp: str):
+    """Verify OTP and return stored data if valid"""
+    if email not in otp_storage:
+        return None, "Code OTP non trouvé"
+    
+    stored = otp_storage[email]
+    if datetime.now(timezone.utc) > stored["expires"]:
+        del otp_storage[email]
+        return None, "Code OTP expiré"
+    
+    if stored["otp"] != otp:
+        return None, "Code OTP invalide"
+    
+    data = stored["data"]
+    del otp_storage[email]
+    return data, None
+
+# IRP (Incident Response Plan) Storage
+irp_incidents = []
+
 # ========================
 # MONGODB COLLECTIONS
 # ========================
