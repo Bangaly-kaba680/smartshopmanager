@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth, useTheme } from '@/App';
 import { Button } from '@/components/ui/button';
@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Sun, Moon, Eye, EyeOff, Loader2, ShieldCheck, Building2, Phone, Mail, ArrowRight, ArrowLeft, CheckCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import axios from 'axios';
+import { getRandomAd } from '@/config/marketingAds';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 
@@ -28,6 +29,17 @@ const RegisterPage = () => {
   const { login } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
+  
+  // Get random marketing ad
+  const [ad, setAd] = useState(() => getRandomAd([1]));
+  
+  // Change ad every 10 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setAd(getRandomAd([1]));
+    }, 10000);
+    return () => clearInterval(interval);
+  }, []);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
