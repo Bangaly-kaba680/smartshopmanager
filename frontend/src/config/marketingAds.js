@@ -10,7 +10,7 @@ export const marketingAds = [
     author: "CEO BINTRONIX",
     role: "Fondateur",
     highlight: "Rejoignez +50 entreprises qui nous font confiance",
-    gradient: "from-emerald-600/90 via-emerald-800/70 to-slate-900/95"
+    gradient: "from-emerald-600/90 via-emerald-800/80 to-slate-900/98"
   },
   {
     id: 2,
@@ -20,49 +20,47 @@ export const marketingAds = [
     author: "SmartShopManager",
     role: "Module POS",
     highlight: "✓ Scan QR • ✓ Multi-paiement • ✓ Reçus automatiques",
-    gradient: "from-cyan-600/90 via-blue-800/70 to-slate-900/95"
+    gradient: "from-cyan-600/90 via-blue-800/80 to-slate-900/98"
   },
   {
     id: 3,
-    image: "/assets/bintronix-logo.png",
+    image: "/assets/ceo-photo.jpeg",
     title: "Intelligence Artificielle Intégrée",
     quote: "Notre IA génère automatiquement vos contrats RH, vos campagnes marketing et analyse vos ventes.",
     author: "BINTRONIX AI",
     role: "Technologie de pointe",
     highlight: "🤖 RH IA • 📢 Marketing IA • 📊 Analytics IA",
-    gradient: "from-purple-600/90 via-indigo-800/70 to-slate-900/95",
-    isLogo: true
+    gradient: "from-purple-600/95 via-indigo-800/90 to-slate-900/98"
   },
   {
     id: 4,
-    image: "/assets/ceo-photo.jpeg",
+    image: "/assets/ceo-photo-2.jpeg",
     title: "Gestion Multi-Boutiques",
     quote: "Gérez toutes vos boutiques depuis un seul tableau de bord. Vision globale, contrôle total.",
     author: "SmartShopManager Pro",
     role: "Enterprise Edition",
     highlight: "📍 Plusieurs sites • 👥 Équipes multiples • 📈 Stats consolidées",
-    gradient: "from-orange-600/90 via-red-800/70 to-slate-900/95"
+    gradient: "from-orange-600/90 via-red-800/80 to-slate-900/98"
   },
   {
     id: 5,
-    image: "/assets/ceo-photo-2.jpeg",
+    image: "/assets/ceo-photo.jpeg",
     title: "Support 24/7 Garanti",
     quote: "Notre équipe est disponible à tout moment pour vous accompagner. Votre succès est notre priorité.",
     author: "Support BINTRONIX",
     role: "Service Client",
     highlight: "💬 Chat • 📧 Email • 📞 Téléphone • 🎓 Formation",
-    gradient: "from-teal-600/90 via-green-800/70 to-slate-900/95"
+    gradient: "from-teal-600/90 via-green-800/80 to-slate-900/98"
   },
   {
     id: 6,
-    image: "/assets/bintronix-logo.png",
+    image: "/assets/ceo-photo-2.jpeg",
     title: "Sécurité de Niveau Bancaire",
     quote: "Vos données sont protégées avec un chiffrement de niveau bancaire et une authentification 2FA.",
     author: "BINTRONIX Security",
     role: "Protection maximale",
     highlight: "🔐 2FA • 🛡️ Chiffrement • 📋 Audit complet",
-    gradient: "from-slate-700/90 via-slate-800/70 to-slate-900/95",
-    isLogo: true
+    gradient: "from-slate-700/95 via-slate-800/90 to-slate-900/98"
   },
   {
     id: 7,
@@ -72,7 +70,7 @@ export const marketingAds = [
     author: "SmartShopManager",
     role: "Business Intelligence",
     highlight: "📊 Dashboards • 📈 Tendances • 💰 Profits",
-    gradient: "from-yellow-600/90 via-amber-800/70 to-slate-900/95"
+    gradient: "from-yellow-600/90 via-amber-800/80 to-slate-900/98"
   },
   {
     id: 8,
@@ -82,7 +80,7 @@ export const marketingAds = [
     author: "Offre Spéciale",
     role: "Démarrez maintenant",
     highlight: "🎁 Gratuit • ⚡ Activation immédiate • 🚀 Toutes fonctions",
-    gradient: "from-pink-600/90 via-rose-800/70 to-slate-900/95"
+    gradient: "from-pink-600/90 via-rose-800/80 to-slate-900/98"
   }
 ];
 
