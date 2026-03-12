@@ -1273,6 +1273,102 @@ async def send_access_request_notification(name: str, email: str, attempt_id: st
 # AUTH ROUTES
 # ========================
 
+# 2FA Registration - Step 1: Request
+class TenantRegisterRequest(BaseModel):
+    company_name: str
+    owner_name: str
+    email: EmailStr
+    password: str
+    phone: Optional[str] = None
+
+class OTPVerify(BaseModel):
+    email: EmailStr
+    otp: str
+
+@api_router.post("/auth/register-request")
+async def request_registration(data: TenantRegisterRequest):
+    """Step 1: Request registration with 2FA - sends OTP"""
+    existing = users_col().find_one({"email": data.email})
+    if existing:
+        raise HTTPException(status_code=400, detail="Email déjà utilisé")
+    
+    # Generate OTP
+    otp = generate_otp()
+    
+    # Store registration data with OTP
+    store_otp(data.email, otp, {
+        "company_name": data.company_name,
+        "owner_name": data.owner_name,
+        "email": data.email,
+        "password": data.password,
+        "phone": data.phone
+    })
+    
+    logging.info(f"OTP for {data.email}: {otp}")
+    
+    return {
+        "message": "Code de vérification envoyé à votre email",
+        "email": data.email,
+        "otp_sent": True,
+        "dev_otp": otp  # Remove in production
+    }
+
+@api_router.post("/auth/verify-registration")
+async def verify_registration(data: OTPVerify):
+    """Step 2: Verify OTP and complete registration"""
+    reg_data, error = verify_otp(data.email, data.otp)
+    if error:
+        raise HTTPException(status_code=400, detail=error)
+    
+    user_id = str(uuid.uuid4())
+    hashed_password = pwd_context.hash(reg_data["password"])
+    
+    users_col().insert_one({
+        "id": user_id,
+        "name": reg_data["owner_name"],
+        "email": reg_data["email"],
+        "password": hashed_password,
+        "role": "owner",
+        "company_name": reg_data["company_name"],
+        "phone": reg_data.get("phone"),
+        "is_verified": True,
+        "subscription_plan": "trial",
+        "trial_ends_at": (datetime.now(timezone.utc) + timedelta(days=14)).isoformat(),
+        "created_at": datetime.now(timezone.utc).isoformat()
+    })
+    
+    token = create_access_token({"user_id": user_id, "role": "owner"})
+    
+    return {
+        "message": "Inscription réussie! Bienvenue sur SmartShopManager.",
+        "access_token": token,
+        "user": {
+            "id": user_id,
+            "email": reg_data["email"],
+            "name": reg_data["owner_name"],
+            "role": "owner"
+        },
+        "company": {
+            "name": reg_data["company_name"],
+            "subscription_plan": "trial",
+            "trial_ends_at": (datetime.now(timezone.utc) + timedelta(days=14)).isoformat()
+        }
+    }
+
+@api_router.post("/auth/resend-otp")
+async def resend_otp(email: str):
+    """Resend OTP code"""
+    if email not in otp_storage:
+        raise HTTPException(status_code=400, detail="Aucune demande d'inscription en cours")
+    
+    otp = generate_otp()
+    old_data = otp_storage[email]["data"]
+    store_otp(email, otp, old_data)
+    
+    logging.info(f"New OTP for {email}: {otp}")
+    
+    return {"message": "Nouveau code envoyé", "email": email, "dev_otp": otp}
+
 @api_router.post("/auth/register", response_model=TokenResponse)
 async def register(user: UserRegister):
     existing = users_col().find_one({"email": user.email})
