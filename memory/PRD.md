@@ -1,152 +1,107 @@
 # BINTRONIX - StartupManager Pro SaaS PRD
 
 ## Original Problem Statement
-Système complet de gestion de startup multi-tenant SaaS avec:
-- Architecture Multi-Tenant avec isolation des données
-- Authentification 2FA (Double Authentification avec OTP)
-- CEO Control Center (Dashboard global pour Super Admin)
-- IRP (Incident Response Plan) avec analyse IA
-- Dashboard Propriétaire de boutique
-- POS (Point de Vente) pour caissiers
-- Gestion des Produits avec QR codes
-- Gestion du Stock/Lots avec génération de QR
-- Gestion des Employés
-- RH IA (génération de documents RH par IA)
-- Marketing IA (génération de contenu)
-- Vue Finances
-- Support IA (tickets gérés via agent IA)
-- Centre d'Aide avec assistant IA
-- Site web BINTRONIX corporate
-
-## Branding
-- **Nom Entreprise**: BINTRONIX
-- **Slogan**: Building the Future
-- **Nom Produit**: StartupManager Pro / SmartShopManager
-- **Logo**: /app/frontend/public/assets/bintronix-logo.png
-- **Photo CEO**: /app/frontend/public/assets/ceo-photo-2.jpeg
+Système complet de gestion de startup multi-tenant SaaS avec 3 rôles principaux :
+- **Administrateur** : Gère toute la plateforme (utilisateurs, boutiques, abonnements, sécurité)
+- **Propriétaire** : Gère sa boutique (produits, stock, employés, ventes, finances)
+- **Vendeur** : Opérations quotidiennes (POS, stock, performances)
 
 ## Tech Stack
 - **Frontend**: React 19, Tailwind CSS, Shadcn UI
 - **Backend**: FastAPI (Python)
-- **Database**: PostgreSQL (JSONB) - Migrated from MongoDB
+- **Database**: PostgreSQL (JSONB adapter)
 - **AI**: OpenAI GPT-5.2 via Emergent LLM Key
-- **Email**: Resend API (OTP emails for 2FA)
+- **Email**: Resend API (2FA OTP)
 
-## Architecture
-
-### Database: PostgreSQL
-- Connection via DATABASE_URL env var
-- JSONB adapter (database_postgres.py) provides MongoDB-compatible interface
-- Tables: users, shops, products, batches, sales, sale_items, employees, documents, accounts, access_requests, authorized_users, payments, whatsapp_messages, otp_codes, incidents, whitelist, blocked_users, access_attempts, sessions, audit_log
-- PostgreSQL managed by supervisor
-
-### Data Isolation (Multi-Tenant)
-- Each Owner has a `tenant_id` and `shop_id`
-- All data endpoints filter by `shop_id` for non-admin users
-- Super Admin / CEO see ALL data (no filter)
-- Helper: `get_shop_filter(user)` returns appropriate filter
-- Helper: `is_admin_role(user)` checks if user has admin access
-
-### Rôles et Accès (RBAC)
-| Rôle | Niveau | Accès |
-|------|--------|-------|
-| **Super Admin** | Global | CEO Control, IRP, Sécurité, Toutes données |
-| **CEO** | Global | Dashboard complet, Toutes données |
-| **Owner** | Tenant | Ses boutiques uniquement, pas CEO Control/IRP |
-| **Manager** | Boutique | Gestion produits, stock |
-| **Cashier** | Limité | POS uniquement |
-
-### Frontend RBAC (DashboardLayout.jsx)
-- Menu items filtered by `userRole`
-- CEO Control, IRP, Sécurité: `['super_admin']` or `['super_admin', 'ceo']`
-- Regular menus: `['super_admin', 'owner', 'ceo', 'manager', 'cashier']`
+## Rôles et Accès (RBAC)
+| Rôle | Menus | Données |
+|------|-------|---------|
+| Super Admin | CEO Control, IRP, Gestion Users/Shops, Abonnements, Sécurité + tout | Toutes les données |
+| CEO | Dashboard + tout sauf admin | Toutes les données |
+| Owner | Dashboard, Produits, Stock, Employés, POS, Retours, Finances, RH/Marketing IA | Ses boutiques uniquement |
+| Manager | Dashboard, Produits, Stock, POS, Retours | Sa boutique |
+| Seller | Dashboard, Produits, POS, Retours, Mes Performances | Sa boutique (lecture) |
+| Cashier | Dashboard, POS, Mes Performances | Sa boutique (POS only) |
 
 ## Credentials
-| Role | Email | Password | Notes |
-|:-----|:------|:---------|:------|
-| Super Admin | bangalykaba635@gmail.com | admin123 | Full platform access |
-| CEO | admin@startup.com | admin123 | Compte démo principal |
-| Owner (test) | testowner@example.com | password123 | Isolated boutique |
-
-## Links
-- Application: https://startup-manager-pro.preview.emergentagent.com
-- Login: https://startup-manager-pro.preview.emergentagent.com/login
+| Role | Email | Password |
+|:-----|:------|:---------|
+| Super Admin | bangalykaba635@gmail.com | admin123 |
+| CEO | admin@startup.com | admin123 |
+| Owner (test) | testowner@example.com | password123 |
 
 ## What's Been Implemented
 
 ### Session 3 - March 22, 2026
-- [x] Tenant Data Isolation - Owners only see their own shop data
-- [x] Frontend RBAC - Menus filtered by user role (CEO Control, IRP, Sécurité hidden for owners)
-- [x] Registration auto-creates shop + tenant + financial accounts
-- [x] Backend Refactoring - Extracted models (models/schemas.py), utils (utils.py), reducing server.py by ~400 lines
-- [x] Fixed forgot password logo (BINTRONIX logo in round)
-- [x] Restored CEO photos on all auth pages (removed stock photos)
-- [x] Reduced gradient blur on auth background images
+- [x] **Admin: Gestion Utilisateurs** - CRUD complet (créer, modifier, supprimer, suspendre, réactiver)
+- [x] **Admin: Gestion Boutiques** - Liste avec infos propriétaire, activer/désactiver
+- [x] **Admin: Plans d'Abonnement** - Gratuit/Professionnel/Premium, CRUD plans
+- [x] **Admin: Stats Plateforme** - Total users, shops, revenue, ventes par jour/mois
+- [x] **Owner: Analyse Financière** - Revenue/profit par jour et mois, par mode de paiement
+- [x] **Owner: Ventes par Vendeur/Produit** - Analyse détaillée des performances
+- [x] **Owner: Alertes Stock** - Produits en stock faible avec seuil configurable
+- [x] **Owner: Ajout Vendeur** - Crée compte + employé avec permissions (can_sell, can_modify_stock, etc.)
+- [x] **Produits: Prix achat/vente** - buy_price + sell_price avec calcul du profit
+- [x] **Retours Produits** - Créer, approuver, rejeter avec remise en stock automatique
+- [x] **Vendeur: Performances** - Nombre de ventes et revenue (aujourd'hui + total)
+- [x] **Vendeur: Produits Disponibles** - Liste avec prix et stock
+- [x] Frontend RBAC complet - Menus sidebar filtrés par rôle
+- [x] Tenant Data Isolation - Chaque Owner voit uniquement ses données
+- [x] Backend refactoring - models/schemas.py + utils.py extraits
 
-### Session 2 - March 12, 2026
-- [x] PostgreSQL migration complete (from MongoDB)
-- [x] "Made with Emergent" watermark fully removed
-- [x] Real 2FA OTP emails via Resend API activated
-- [x] PostgreSQL managed by supervisor
-- [x] Connection resilience (auto-reconnect)
+### Session 2
+- [x] PostgreSQL migration, "Made with Emergent" supprimé, 2FA emails Resend
 
 ### Session 1
-- [x] Authentication (Login, Register, Forgot Password, JWT)
-- [x] Dashboard CEO with AI insights
-- [x] POS with multi-payment
-- [x] Products CRUD, Stock/Batches with QR
-- [x] Employees CRUD, RH IA, Marketing IA
-- [x] Finance view, Help Center, Security Admin
-- [x] CEO Control Center, IRP
-- [x] BINTRONIX branding, Random marketing ads
+- [x] Auth, Dashboard, POS, Products, Stock, Employees, RH IA, Marketing IA, Finance, Help, Security, CEO Control, IRP, BINTRONIX branding
+
+## Test Results (March 22, 2026)
+- **Backend**: 100% (22/22 tests passed)
+- **Frontend**: 100% (all pages working)
+- **Test Report**: /app/test_reports/iteration_5.json
 
 ## Code Architecture
 ```
 /app/backend/
-├── .env
-├── database.py              # Database config (PostgreSQL)
-├── database_postgres.py     # PostgreSQL JSONB adapter (PgCollection)
-├── security.py              # Access control & security
-├── server.py                # FastAPI routes (~2500 lines)
-├── models/
-│   └── schemas.py           # All Pydantic models
-├── utils.py                 # Shared utilities (JWT, OTP, AI, etc.)
-├── routes/                  # (Future: split routes here)
-└── requirements.txt
+├── database.py, database_postgres.py (PostgreSQL)
+├── models/schemas.py (Pydantic models)
+├── utils.py (JWT, OTP, AI, collections, serialization)
+├── security.py (Access control)
+├── server.py (~3100 lines - routes)
+└── tests/
 
-/app/frontend/
-├── public/
-│   ├── assets/              # Logo, CEO photos
-│   └── index.html           # Branding CSS/JS
-├── src/
-│   ├── config/marketingAds.js
-│   ├── components/DashboardLayout.jsx  # RBAC sidebar
-│   ├── pages/               # All page components
-│   ├── lib/api.js           # API client
-│   └── App.js               # Main router
-└── package.json
+/app/frontend/src/
+├── pages/
+│   ├── AdminUsersPage.jsx (Admin: gestion utilisateurs)
+│   ├── AdminShopsPage.jsx (Admin: gestion boutiques)
+│   ├── SubscriptionsPage.jsx (Admin: plans abonnement)
+│   ├── ReturnsPage.jsx (Retours produits)
+│   ├── SellerPerformancePage.jsx (Vendeur: performances)
+│   ├── CEOControlCenter.jsx, IRPPage.jsx
+│   ├── DashboardPage.jsx, ProductsPage.jsx, etc.
+│   └── LoginPage.jsx, RegisterPage.jsx, ForgotPasswordPage.jsx
+├── components/DashboardLayout.jsx (RBAC sidebar)
+├── config/marketingAds.js
+└── App.js (routes + auth context)
 ```
 
 ## Prioritized Backlog
 
 ### P1 - High Priority
-- [ ] Complete route splitting (move routes from server.py to routes/*.py)
-- [ ] Build tenant admin panel (Owner can manage their shop settings)
-- [ ] Real payment integrations (Orange Money API, Wave)
+- [ ] Enhanced Product page (buy_price/sell_price fields in UI)
+- [ ] Enhanced Employee page (permissions toggles in UI)
+- [ ] Seller can register sale from POS with their seller account
+- [ ] Complete route splitting (server.py still large)
 
 ### P2 - Medium Priority
-- [ ] File upload for product images (Object Storage)
+- [ ] Real payment integrations (Orange Money API, Wave, MTN MoMo)
+- [ ] File upload for product images / shop logos
 - [ ] Multi-language support
-- [ ] Real WhatsApp/SMS integration
-- [ ] Shop-to-shop transfers
+- [ ] Seller account creation flow (owner invites seller)
+- [ ] Sale cancellation feature
 
 ### P3 - Nice to Have
-- [ ] Mobile app (React Native)
-- [ ] Real QR code scanner
-- [ ] Accounting integration
-- [ ] Custom reports & analytics
-- [ ] Low stock alerts
-
-## Known Limitations
-- **Payments**: Orange Money, Carte, WhatsApp/SMS are SIMULATED
-- **2FA Email**: Works with Resend API, falls back to dev OTP display if API key not configured
+- [ ] Mobile app, Real QR scanner
+- [ ] Accounting integration, Custom reports
+- [ ] Database backup management UI for admin
+- [ ] Real-time notifications (stock alerts)
