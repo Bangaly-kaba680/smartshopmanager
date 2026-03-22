@@ -79,6 +79,12 @@ def whatsapp_messages_col():
 def incidents_col():
     return get_collection("incidents")
 
+def returns_col():
+    return get_collection("returns")
+
+def subscription_plans_col():
+    return get_collection("subscription_plans")
+
 
 # ========================
 # SERIALIZATION

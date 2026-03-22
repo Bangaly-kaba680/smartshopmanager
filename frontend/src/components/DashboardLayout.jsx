@@ -6,26 +6,39 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { 
   LayoutDashboard, Store, Users, Package, Boxes, ShoppingCart, 
   DollarSign, Brain, Megaphone, HelpCircle, Settings,
-  LogOut, Sun, Moon, Menu, X, ChevronLeft, Shield, ShieldCheck, Building2, Command, AlertTriangle
+  LogOut, Sun, Moon, Menu, X, ChevronLeft, Shield, ShieldCheck, Building2, Command, AlertTriangle,
+  UserCog, CreditCard, RotateCcw, TrendingUp, BarChart3
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const menuItems = [
-  { path: '/ceo-control', icon: Command, label: 'CEO Control', roles: ['super_admin'], superAdminOnly: true },
-  { path: '/irp', icon: AlertTriangle, label: 'IRP Incidents', roles: ['super_admin'], superAdminOnly: true },
-  { path: '/dashboard', icon: LayoutDashboard, label: 'Dashboard', roles: ['super_admin', 'owner', 'ceo', 'manager', 'cashier', 'stock_manager'] },
+  // === ADMIN PLATFORM ===
+  { path: '/ceo-control', icon: Command, label: 'CEO Control', roles: ['super_admin'] },
+  { path: '/irp', icon: AlertTriangle, label: 'IRP Incidents', roles: ['super_admin'] },
+  { path: '/admin/users', icon: UserCog, label: 'Gestion Utilisateurs', roles: ['super_admin'] },
+  { path: '/admin/shops', icon: Store, label: 'Gestion Boutiques', roles: ['super_admin'] },
+  { path: '/admin/subscriptions', icon: CreditCard, label: 'Abonnements', roles: ['super_admin'] },
   { path: '/security', icon: ShieldCheck, label: 'Sécurité', roles: ['super_admin', 'ceo'] },
   { path: '/brand-assets', icon: Building2, label: 'BINTRONIX Assets', roles: ['super_admin', 'ceo'] },
-  { path: '/shops', icon: Store, label: 'Boutiques', roles: ['super_admin', 'owner', 'ceo'] },
-  { path: '/employees', icon: Users, label: 'Employés', roles: ['super_admin', 'owner', 'ceo', 'manager'] },
-  { path: '/products', icon: Package, label: 'Produits', roles: ['super_admin', 'owner', 'ceo', 'manager', 'cashier', 'stock_manager'] },
-  { path: '/stock', icon: Boxes, label: 'Stock', roles: ['super_admin', 'owner', 'ceo', 'manager', 'stock_manager'] },
-  { path: '/pos', icon: ShoppingCart, label: 'Ventes (POS)', roles: ['super_admin', 'owner', 'ceo', 'manager', 'cashier'] },
+  
+  // === OWNER / MANAGER ===
+  { path: '/dashboard', icon: LayoutDashboard, label: 'Dashboard', roles: ['super_admin', 'owner', 'ceo', 'manager', 'seller', 'cashier'] },
+  { path: '/shops', icon: Store, label: 'Ma Boutique', roles: ['owner', 'ceo'] },
+  { path: '/products', icon: Package, label: 'Produits', roles: ['super_admin', 'owner', 'ceo', 'manager', 'seller'] },
+  { path: '/stock', icon: Boxes, label: 'Stock', roles: ['super_admin', 'owner', 'ceo', 'manager'] },
+  { path: '/employees', icon: Users, label: 'Employés', roles: ['super_admin', 'owner', 'ceo'] },
+  { path: '/pos', icon: ShoppingCart, label: 'Ventes (POS)', roles: ['super_admin', 'owner', 'ceo', 'manager', 'seller', 'cashier'] },
+  { path: '/returns', icon: RotateCcw, label: 'Retours', roles: ['super_admin', 'owner', 'ceo', 'manager', 'seller'] },
   { path: '/finances', icon: DollarSign, label: 'Finances', roles: ['super_admin', 'owner', 'ceo'] },
   { path: '/rh-ia', icon: Brain, label: 'RH IA', roles: ['super_admin', 'owner', 'ceo'] },
-  { path: '/marketing-ia', icon: Megaphone, label: 'Marketing IA', roles: ['super_admin', 'owner', 'ceo', 'manager'] },
-  { path: '/help', icon: HelpCircle, label: "Centre d'aide", roles: ['super_admin', 'owner', 'ceo', 'manager', 'cashier', 'stock_manager'] },
-  { path: '/settings', icon: Settings, label: 'Paramètres', roles: ['super_admin', 'owner', 'ceo', 'manager', 'cashier', 'stock_manager'] },
+  { path: '/marketing-ia', icon: Megaphone, label: 'Marketing IA', roles: ['super_admin', 'owner', 'ceo'] },
+  
+  // === SELLER ===
+  { path: '/my-performance', icon: TrendingUp, label: 'Mes Performances', roles: ['seller', 'cashier'] },
+  
+  // === ALL ===
+  { path: '/help', icon: HelpCircle, label: "Centre d'aide", roles: ['super_admin', 'owner', 'ceo', 'manager', 'seller', 'cashier'] },
+  { path: '/settings', icon: Settings, label: 'Paramètres', roles: ['super_admin', 'owner', 'ceo', 'manager', 'seller', 'cashier'] },
 ];
 
 const DashboardLayout = ({ children, title }) => {

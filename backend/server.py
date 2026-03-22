@@ -32,18 +32,22 @@ from models.schemas import (
     AccessRequest, ApproveAccess, UserRegister, UserLogin, UserResponse,
     TokenResponse, ForgotPassword, TenantRegisterRequest, OTPVerify,
     AccessActionApprove, AccessActionDeny, WhitelistAdd, BlockUser,
-    ApproveAccessRequest, ShopCreate, ShopResponse, ProductCreate,
+    ApproveAccessRequest, ShopCreate, ShopUpdate, ShopResponse, ProductCreate,
     ProductResponse, ProductUpdate, BatchCreate, BatchResponse, BatchUpdate,
     SaleItemCreate, SaleCreate, SaleResponse, EmployeeCreate, EmployeeResponse,
     EmployeeUpdate, DocumentCreate, DocumentResponse, AccountResponse,
     AIContractRequest, AIMarketingRequest, AIHelpRequest, PaymentInitiate,
-    PaymentResponse, WhatsAppReceipt, IRPCreate, IRPUpdate
+    PaymentResponse, WhatsAppReceipt, IRPCreate, IRPUpdate,
+    AdminCreateUser, AdminUpdateUser, AdminUserResponse,
+    SubscriptionPlanCreate, SubscriptionPlanResponse,
+    ProductReturnCreate, ProductReturnResponse
 )
 from utils import (
     pwd_context, ADMIN_EMAIL, otp_storage, generate_otp, store_otp, verify_otp,
     users_col, shops_col, products_col, batches_col, sales_col, sale_items_col,
     employees_col, documents_col, accounts_col, access_requests_col,
     authorized_users_col, payments_col, whatsapp_messages_col, incidents_col,
+    returns_col, subscription_plans_col,
     serialize_doc, serialize_docs, create_access_token, verify_token,
     get_current_user, get_shop_filter, is_admin_role, generate_ai_content,
     security, EMERGENT_API_KEY
@@ -85,6 +89,16 @@ def init_demo_data():
             "created_at": datetime.now(timezone.utc).isoformat()
         })
         logging.info(f"Super admin created: {ADMIN_EMAIL}")
+    
+    # Init default subscription plans
+    if subscription_plans_col().count_documents({}) == 0:
+        for plan in [
+            {"id": str(uuid.uuid4()), "name": "Gratuit", "price": 0, "duration_days": 0, "features": ["5 produits", "1 employé", "Ventes de base"], "max_products": 5, "max_employees": 1, "is_active": True},
+            {"id": str(uuid.uuid4()), "name": "Professionnel", "price": 50000, "duration_days": 30, "features": ["100 produits", "10 employés", "Rapports avancés", "Support prioritaire"], "max_products": 100, "max_employees": 10, "is_active": True},
+            {"id": str(uuid.uuid4()), "name": "Premium", "price": 150000, "duration_days": 30, "features": ["Produits illimités", "Employés illimités", "IA intégrée", "Support 24/7", "Multi-boutiques"], "max_products": 9999, "max_employees": 9999, "is_active": True},
+        ]:
+            subscription_plans_col().insert_one(plan)
+        logging.info("Default subscription plans created")
     
     # Check if demo data already exists
     if users_col().count_documents({}) > 1:
@@ -1245,8 +1259,15 @@ async def get_products(shop_id: Optional[str] = None, category: Optional[str] = 
     result = []
     for prod in products:
         prod = serialize_doc(prod)
-        stock = sum(b["quantity"] for b in batches_col().find({"product_id": prod["id"]}))
-        result.append(ProductResponse(**prod, stock_quantity=stock))
+        stock = sum(int(serialize_doc(b).get("quantity", 0)) for b in batches_col().find({"product_id": prod["id"]}))
+        # Ensure buy_price/sell_price exist
+        if "sell_price" not in prod:
+            prod["sell_price"] = prod.get("price", 0)
+        if "buy_price" not in prod:
+            prod["buy_price"] = 0
+        prod["price"] = prod.get("sell_price", prod.get("price", 0))
+        threshold = int(prod.get("low_stock_threshold", 5))
+        result.append(ProductResponse(**prod, stock_quantity=stock, low_stock_alert=stock <= threshold))
     return result
 
 @api_router.post("/products", response_model=ProductResponse)
@@ -1257,10 +1278,17 @@ async def create_product(product: ProductCreate, current_user: dict = Depends(ge
         shop = shops_col().find_one()
         user_shop_id = serialize_doc(shop)["id"] if shop else None
     
+    prod_dict = product.model_dump()
+    # Handle price aliases: if price given but not sell_price, use price as sell_price
+    if prod_dict.get("price") and not prod_dict.get("sell_price"):
+        prod_dict["sell_price"] = prod_dict["price"]
+    if not prod_dict.get("price"):
+        prod_dict["price"] = prod_dict.get("sell_price", 0)
+    
     prod_data = {
         "id": prod_id,
         "shop_id": user_shop_id,
-        **product.model_dump(),
+        **prod_dict,
         "created_at": datetime.now(timezone.utc).isoformat()
     }
     products_col().insert_one(prod_data)
@@ -1425,8 +1453,10 @@ async def create_sale(sale: SaleCreate, current_user: dict = Depends(get_current
         shop = shops_col().find_one()
         user_shop_id = serialize_doc(shop)["id"] if shop else None
     user_id = current_user["id"]
+    seller_name = current_user.get("name", "")
     
     total = 0
+    total_profit = 0
     sale_items = []
     
     for item in sale.items:
@@ -1438,6 +1468,11 @@ async def create_sale(sale: SaleCreate, current_user: dict = Depends(get_current
         item_total = item.quantity * item.price
         total += item_total
         
+        # Calculate profit
+        buy_price = float(product.get("buy_price", 0))
+        item_profit = (item.price - buy_price) * item.quantity
+        total_profit += item_profit
+        
         item_id = str(uuid.uuid4())
         sale_item = {
             "id": item_id,
@@ -1446,24 +1481,27 @@ async def create_sale(sale: SaleCreate, current_user: dict = Depends(get_current
             "product_name": product["name"],
             "quantity": item.quantity,
             "price": item.price,
-            "total": item_total
+            "buy_price": buy_price,
+            "total": item_total,
+            "profit": item_profit
         }
         sale_items_col().insert_one(sale_item)
         sale_items.append(sale_item)
         
         # Update stock
-        batch = batches_col().find_one({"product_id": item.product_id, "quantity": {"$gte": item.quantity}})
+        batch = batches_col().find_one({"product_id": item.product_id})
         if batch:
-            batches_col().update_one(
-                {"id": batch["id"]},
-                {"$inc": {"quantity": -item.quantity}}
-            )
+            batch = serialize_doc(batch)
+            new_qty = max(0, int(batch.get("quantity", 0)) - item.quantity)
+            batches_col().update_one({"id": batch["id"]}, {"$set": {"quantity": new_qty}})
     
     sale_data = {
         "id": sale_id,
         "shop_id": user_shop_id,
         "user_id": user_id,
+        "seller_name": seller_name,
         "total": total,
+        "profit": total_profit,
         "payment_method": sale.payment_method,
         "customer_phone": sale.customer_phone,
         "created_at": datetime.now(timezone.utc).isoformat()
@@ -2473,6 +2511,588 @@ async def get_irp_stats(current_user: dict = Depends(get_current_user)):
     }
 
 # ========================
+
+# ========================
+# ADMIN - USER MANAGEMENT ROUTES
+# ========================
+
+@api_router.get("/admin/users")
+async def admin_list_users(role: Optional[str] = None, is_active: Optional[bool] = None, current_user: dict = Depends(get_current_user)):
+    """Admin: List all users with optional filters"""
+    if not is_admin_role(current_user):
+        raise HTTPException(status_code=403, detail="Accès réservé aux administrateurs")
+    query = {}
+    if role:
+        query["role"] = role
+    if is_active is not None:
+        query["is_active"] = str(is_active).lower()
+    users = list(users_col().find(query))
+    result = []
+    for u in users:
+        u = serialize_doc(u)
+        u.pop("password", None)
+        result.append(u)
+    return result
+
+@api_router.post("/admin/users")
+async def admin_create_user(data: AdminCreateUser, current_user: dict = Depends(get_current_user)):
+    """Admin: Create a new user (owner, manager, seller)"""
+    if not is_admin_role(current_user):
+        raise HTTPException(status_code=403, detail="Accès réservé aux administrateurs")
+    existing = users_col().find_one({"email": data.email})
+    if existing:
+        raise HTTPException(status_code=400, detail="Email déjà utilisé")
+    
+    user_id = str(uuid.uuid4())
+    tenant_id = str(uuid.uuid4())
+    shop_id = str(uuid.uuid4()) if data.role == "owner" else None
+    
+    user_data = {
+        "id": user_id,
+        "name": data.name,
+        "email": data.email,
+        "password": pwd_context.hash(data.password),
+        "role": data.role,
+        "company_name": data.company_name,
+        "phone": data.phone,
+        "tenant_id": tenant_id,
+        "shop_id": shop_id,
+        "is_active": True,
+        "subscription_plan": "free",
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    users_col().insert_one(user_data)
+    
+    # Create default shop for owners
+    if data.role == "owner" and shop_id:
+        shops_col().insert_one({
+            "id": shop_id,
+            "name": data.company_name or f"Boutique de {data.name}",
+            "address": "",
+            "phone": data.phone or "",
+            "owner_id": user_id,
+            "tenant_id": tenant_id,
+            "is_active": True,
+            "created_at": datetime.now(timezone.utc).isoformat()
+        })
+        for acc_type in ["cash", "orange_money", "bank"]:
+            accounts_col().insert_one({
+                "id": str(uuid.uuid4()),
+                "shop_id": shop_id,
+                "tenant_id": tenant_id,
+                "type": acc_type,
+                "balance": 0
+            })
+    
+    user_data.pop("password")
+    return {"message": f"Utilisateur {data.name} créé avec succès", "user": serialize_doc(user_data)}
+
+@api_router.put("/admin/users/{user_id}")
+async def admin_update_user(user_id: str, data: AdminUpdateUser, current_user: dict = Depends(get_current_user)):
+    """Admin: Update user info"""
+    if not is_admin_role(current_user):
+        raise HTTPException(status_code=403, detail="Accès réservé aux administrateurs")
+    user = users_col().find_one({"id": user_id})
+    if not user:
+        raise HTTPException(status_code=404, detail="Utilisateur non trouvé")
+    update_data = {k: v for k, v in data.model_dump().items() if v is not None}
+    if update_data:
+        users_col().update_one({"id": user_id}, {"$set": update_data})
+    return {"message": "Utilisateur mis à jour"}
+
+@api_router.delete("/admin/users/{user_id}")
+async def admin_delete_user(user_id: str, current_user: dict = Depends(get_current_user)):
+    """Admin: Delete a user"""
+    if not is_admin_role(current_user):
+        raise HTTPException(status_code=403, detail="Accès réservé aux administrateurs")
+    user = users_col().find_one({"id": user_id})
+    if not user:
+        raise HTTPException(status_code=404, detail="Utilisateur non trouvé")
+    user = serialize_doc(user)
+    if user.get("role") == "super_admin":
+        raise HTTPException(status_code=403, detail="Impossible de supprimer le super administrateur")
+    users_col().delete_one({"id": user_id})
+    return {"message": "Utilisateur supprimé"}
+
+@api_router.post("/admin/users/{user_id}/suspend")
+async def admin_suspend_user(user_id: str, current_user: dict = Depends(get_current_user)):
+    """Admin: Suspend a user"""
+    if not is_admin_role(current_user):
+        raise HTTPException(status_code=403, detail="Accès réservé aux administrateurs")
+    user = users_col().find_one({"id": user_id})
+    if not user:
+        raise HTTPException(status_code=404, detail="Utilisateur non trouvé")
+    users_col().update_one({"id": user_id}, {"$set": {"is_active": False}})
+    return {"message": "Utilisateur suspendu"}
+
+@api_router.post("/admin/users/{user_id}/activate")
+async def admin_activate_user(user_id: str, current_user: dict = Depends(get_current_user)):
+    """Admin: Re-activate a suspended user"""
+    if not is_admin_role(current_user):
+        raise HTTPException(status_code=403, detail="Accès réservé aux administrateurs")
+    users_col().update_one({"id": user_id}, {"$set": {"is_active": True}})
+    return {"message": "Utilisateur réactivé"}
+
+# ========================
+# ADMIN - SHOP MANAGEMENT
+# ========================
+
+@api_router.get("/admin/shops")
+async def admin_list_shops(current_user: dict = Depends(get_current_user)):
+    """Admin: List all shops with owner info"""
+    if not is_admin_role(current_user):
+        raise HTTPException(status_code=403, detail="Accès réservé aux administrateurs")
+    shops = list(shops_col().find())
+    result = []
+    for s in shops:
+        s = serialize_doc(s)
+        owner = users_col().find_one({"id": s.get("owner_id", "")})
+        s["owner_name"] = serialize_doc(owner).get("name", "N/A") if owner else "N/A"
+        s["owner_email"] = serialize_doc(owner).get("email", "N/A") if owner else "N/A"
+        result.append(s)
+    return result
+
+@api_router.put("/admin/shops/{shop_id}")
+async def admin_update_shop(shop_id: str, data: ShopUpdate, current_user: dict = Depends(get_current_user)):
+    """Admin: Update shop info"""
+    if not is_admin_role(current_user):
+        raise HTTPException(status_code=403, detail="Accès réservé aux administrateurs")
+    shop = shops_col().find_one({"id": shop_id})
+    if not shop:
+        raise HTTPException(status_code=404, detail="Boutique non trouvée")
+    update_data = {k: v for k, v in data.model_dump().items() if v is not None}
+    if update_data:
+        shops_col().update_one({"id": shop_id}, {"$set": update_data})
+    return {"message": "Boutique mise à jour"}
+
+@api_router.post("/admin/shops/{shop_id}/deactivate")
+async def admin_deactivate_shop(shop_id: str, current_user: dict = Depends(get_current_user)):
+    """Admin: Deactivate a shop"""
+    if not is_admin_role(current_user):
+        raise HTTPException(status_code=403, detail="Accès réservé aux administrateurs")
+    shops_col().update_one({"id": shop_id}, {"$set": {"is_active": False}})
+    return {"message": "Boutique désactivée"}
+
+@api_router.post("/admin/shops/{shop_id}/activate")
+async def admin_activate_shop(shop_id: str, current_user: dict = Depends(get_current_user)):
+    """Admin: Re-activate a shop"""
+    if not is_admin_role(current_user):
+        raise HTTPException(status_code=403, detail="Accès réservé aux administrateurs")
+    shops_col().update_one({"id": shop_id}, {"$set": {"is_active": True}})
+    return {"message": "Boutique réactivée"}
+
+# ========================
+# ADMIN - SUBSCRIPTION PLANS
+# ========================
+
+@api_router.get("/admin/subscriptions")
+async def admin_list_subscriptions(current_user: dict = Depends(get_current_user)):
+    """Admin: List all subscription plans"""
+    if not is_admin_role(current_user):
+        raise HTTPException(status_code=403, detail="Accès réservé aux administrateurs")
+    plans = list(subscription_plans_col().find())
+    return serialize_docs(plans)
+
+@api_router.post("/admin/subscriptions")
+async def admin_create_subscription(data: SubscriptionPlanCreate, current_user: dict = Depends(get_current_user)):
+    """Admin: Create a subscription plan"""
+    if not is_admin_role(current_user):
+        raise HTTPException(status_code=403, detail="Accès réservé aux administrateurs")
+    plan = {
+        "id": str(uuid.uuid4()),
+        "name": data.name,
+        "price": data.price,
+        "duration_days": data.duration_days,
+        "features": data.features,
+        "max_products": data.max_products,
+        "max_employees": data.max_employees,
+        "is_active": data.is_active,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    subscription_plans_col().insert_one(plan)
+    return {"message": f"Plan '{data.name}' créé", "plan": plan}
+
+@api_router.put("/admin/subscriptions/{plan_id}")
+async def admin_update_subscription(plan_id: str, data: SubscriptionPlanCreate, current_user: dict = Depends(get_current_user)):
+    """Admin: Update a subscription plan"""
+    if not is_admin_role(current_user):
+        raise HTTPException(status_code=403, detail="Accès réservé aux administrateurs")
+    update_data = {k: v for k, v in data.model_dump().items() if v is not None}
+    subscription_plans_col().update_one({"id": plan_id}, {"$set": update_data})
+    return {"message": "Plan mis à jour"}
+
+@api_router.post("/admin/users/{user_id}/subscription")
+async def admin_set_user_subscription(user_id: str, plan_name: str, current_user: dict = Depends(get_current_user)):
+    """Admin: Assign subscription plan to user"""
+    if not is_admin_role(current_user):
+        raise HTTPException(status_code=403, detail="Accès réservé aux administrateurs")
+    users_col().update_one({"id": user_id}, {"$set": {"subscription_plan": plan_name}})
+    return {"message": f"Abonnement '{plan_name}' assigné"}
+
+# ========================
+# ADMIN - PLATFORM STATS
+# ========================
+
+@api_router.get("/admin/platform-stats")
+async def admin_platform_stats(current_user: dict = Depends(get_current_user)):
+    """Admin: Global platform statistics"""
+    if not is_admin_role(current_user):
+        raise HTTPException(status_code=403, detail="Accès réservé aux administrateurs")
+    
+    total_users = users_col().count_documents({})
+    suspended_users = users_col().count_documents({"is_active": "false"})
+    active_users = total_users - suspended_users
+    total_shops = shops_col().count_documents({})
+    suspended_shops = shops_col().count_documents({"is_active": "false"})
+    active_shops = total_shops - suspended_shops
+    total_products = products_col().count_documents({})
+    total_sales = sales_col().count_documents({})
+    
+    all_sales = list(sales_col().find())
+    total_revenue = sum(float(serialize_doc(s).get("total", 0)) for s in all_sales)
+    
+    today = datetime.now(timezone.utc).date().isoformat()
+    today_sales = [s for s in all_sales if serialize_doc(s).get("created_at", "")[:10] == today]
+    today_revenue = sum(float(serialize_doc(s).get("total", 0)) for s in today_sales)
+    
+    current_month = datetime.now(timezone.utc).strftime("%Y-%m")
+    monthly_sales = [s for s in all_sales if serialize_doc(s).get("created_at", "")[:7] == current_month]
+    monthly_revenue = sum(float(serialize_doc(s).get("total", 0)) for s in monthly_sales)
+    
+    # Users by role
+    owners = users_col().count_documents({"role": "owner"})
+    sellers = users_col().count_documents({"role": "seller"})
+    managers = users_col().count_documents({"role": "manager"})
+    
+    return {
+        "total_users": total_users,
+        "active_users": active_users,
+        "users_by_role": {"owners": owners, "sellers": sellers, "managers": managers},
+        "total_shops": total_shops,
+        "active_shops": active_shops,
+        "total_products": total_products,
+        "total_sales": total_sales,
+        "total_revenue": total_revenue,
+        "today_revenue": today_revenue,
+        "today_sales_count": len(today_sales),
+        "monthly_revenue": monthly_revenue,
+        "monthly_sales_count": len(monthly_sales)
+    }
+
+# ========================
+# OWNER - SHOP MANAGEMENT
+# ========================
+
+@api_router.put("/shop/settings")
+async def owner_update_shop(data: ShopUpdate, current_user: dict = Depends(get_current_user)):
+    """Owner: Update own shop settings"""
+    shop_id = current_user.get("shop_id")
+    if not shop_id:
+        raise HTTPException(status_code=404, detail="Aucune boutique associée")
+    update_data = {k: v for k, v in data.model_dump().items() if v is not None}
+    if update_data:
+        shops_col().update_one({"id": shop_id}, {"$set": update_data})
+    shop = shops_col().find_one({"id": shop_id})
+    return {"message": "Boutique mise à jour", "shop": serialize_doc(shop)}
+
+@api_router.get("/shop/info")
+async def owner_get_shop_info(current_user: dict = Depends(get_current_user)):
+    """Owner: Get own shop info"""
+    shop_id = current_user.get("shop_id")
+    if not shop_id and is_admin_role(current_user):
+        shop = shops_col().find_one()
+    else:
+        shop = shops_col().find_one({"id": shop_id})
+    if not shop:
+        raise HTTPException(status_code=404, detail="Aucune boutique trouvée")
+    return serialize_doc(shop)
+
+# ========================
+# OWNER - ADD SELLER / EMPLOYEE ACCOUNT
+# ========================
+
+@api_router.post("/owner/add-seller")
+async def owner_add_seller(data: EmployeeCreate, current_user: dict = Depends(get_current_user)):
+    """Owner: Add a seller/employee to the shop with an account"""
+    shop_id = current_user.get("shop_id")
+    tenant_id = current_user.get("tenant_id")
+    if not shop_id:
+        raise HTTPException(status_code=403, detail="Pas de boutique associée")
+    
+    emp_id = str(uuid.uuid4())
+    seller_user_id = None
+    
+    # Create user account for the seller if email is provided
+    if data.email:
+        existing = users_col().find_one({"email": data.email})
+        if existing:
+            raise HTTPException(status_code=400, detail="Email déjà utilisé")
+        seller_user_id = str(uuid.uuid4())
+        users_col().insert_one({
+            "id": seller_user_id,
+            "name": data.name,
+            "email": data.email,
+            "password": pwd_context.hash("changeme123"),
+            "role": "seller",
+            "shop_id": shop_id,
+            "tenant_id": tenant_id,
+            "is_active": True,
+            "created_at": datetime.now(timezone.utc).isoformat()
+        })
+    
+    # Create employee record
+    emp_data = {
+        "id": emp_id,
+        "shop_id": shop_id,
+        "name": data.name,
+        "email": data.email,
+        "position": data.position,
+        "salary": data.salary,
+        "contract_type": data.contract_type,
+        "phone": data.phone,
+        "can_sell": data.can_sell,
+        "can_modify_stock": data.can_modify_stock,
+        "can_view_reports": data.can_view_reports,
+        "can_manage_returns": data.can_manage_returns,
+        "user_id": seller_user_id,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    employees_col().insert_one(emp_data)
+    
+    response = {"message": f"Vendeur {data.name} ajouté avec succès", "employee": emp_data}
+    if seller_user_id:
+        response["account_created"] = True
+        response["default_password"] = "changeme123"
+    return response
+
+# ========================
+# OWNER - FINANCIAL ANALYSIS
+# ========================
+
+@api_router.get("/owner/financial-analysis")
+async def owner_financial_analysis(period: str = "today", current_user: dict = Depends(get_current_user)):
+    """Owner: Get financial analysis with profit calculations"""
+    shop_filter = get_shop_filter(current_user)
+    all_sales = list(sales_col().find(shop_filter))
+    
+    now = datetime.now(timezone.utc)
+    today = now.date().isoformat()
+    current_month = now.strftime("%Y-%m")
+    
+    today_sales = []
+    monthly_sales = []
+    for s in all_sales:
+        s = serialize_doc(s)
+        created = s.get("created_at", "")
+        if created[:10] == today:
+            today_sales.append(s)
+        if created[:7] == current_month:
+            monthly_sales.append(s)
+    
+    today_revenue = sum(float(s.get("total", 0)) for s in today_sales)
+    monthly_revenue = sum(float(s.get("total", 0)) for s in monthly_sales)
+    today_profit = sum(float(s.get("profit", 0)) for s in today_sales)
+    monthly_profit = sum(float(s.get("profit", 0)) for s in monthly_sales)
+    
+    # Sales by payment method
+    by_payment = {}
+    target = today_sales if period == "today" else monthly_sales
+    for s in target:
+        method = s.get("payment_method", "cash")
+        by_payment[method] = by_payment.get(method, 0) + float(s.get("total", 0))
+    
+    return {
+        "today": {
+            "revenue": today_revenue,
+            "profit": today_profit,
+            "sales_count": len(today_sales)
+        },
+        "monthly": {
+            "revenue": monthly_revenue,
+            "profit": monthly_profit,
+            "sales_count": len(monthly_sales)
+        },
+        "by_payment_method": by_payment,
+        "total_all_time": {
+            "revenue": sum(float(serialize_doc(s).get("total", 0)) for s in all_sales),
+            "profit": sum(float(serialize_doc(s).get("profit", 0)) for s in all_sales),
+            "sales_count": len(all_sales)
+        }
+    }
+
+# ========================
+# OWNER - SALES BY SELLER / PRODUCT
+# ========================
+
+@api_router.get("/owner/sales-by-seller")
+async def owner_sales_by_seller(current_user: dict = Depends(get_current_user)):
+    """Owner: View sales grouped by seller"""
+    shop_filter = get_shop_filter(current_user)
+    sales = list(sales_col().find(shop_filter))
+    by_seller = {}
+    for s in sales:
+        s = serialize_doc(s)
+        seller_id = s.get("user_id", "unknown")
+        seller_name = s.get("seller_name", "")
+        if not seller_name:
+            seller_user = users_col().find_one({"id": seller_id})
+            seller_name = serialize_doc(seller_user).get("name", "Inconnu") if seller_user else "Inconnu"
+        if seller_id not in by_seller:
+            by_seller[seller_id] = {"name": seller_name, "total": 0, "count": 0, "profit": 0}
+        by_seller[seller_id]["total"] += float(s.get("total", 0))
+        by_seller[seller_id]["count"] += 1
+        by_seller[seller_id]["profit"] += float(s.get("profit", 0))
+    return list(by_seller.values())
+
+@api_router.get("/owner/sales-by-product")
+async def owner_sales_by_product(current_user: dict = Depends(get_current_user)):
+    """Owner: View sales grouped by product"""
+    shop_filter = get_shop_filter(current_user)
+    sale_items = list(sale_items_col().find())
+    # Filter by shop's sales
+    shop_sales = {serialize_doc(s)["id"] for s in sales_col().find(shop_filter)}
+    
+    by_product = {}
+    for item in sale_items:
+        item = serialize_doc(item)
+        if item.get("sale_id") not in shop_sales and shop_filter:
+            continue
+        pid = item.get("product_id", "unknown")
+        pname = item.get("product_name", "")
+        if pid not in by_product:
+            by_product[pid] = {"name": pname, "quantity_sold": 0, "revenue": 0}
+        by_product[pid]["quantity_sold"] += int(item.get("quantity", 0))
+        by_product[pid]["revenue"] += float(item.get("subtotal", 0))
+    return list(by_product.values())
+
+# ========================
+# OWNER - STOCK ALERTS
+# ========================
+
+@api_router.get("/owner/stock-alerts")
+async def owner_stock_alerts(current_user: dict = Depends(get_current_user)):
+    """Owner: Get products with low stock"""
+    shop_filter = get_shop_filter(current_user)
+    products = list(products_col().find(shop_filter))
+    alerts = []
+    for p in products:
+        p = serialize_doc(p)
+        stock = sum(int(serialize_doc(b).get("quantity", 0)) for b in batches_col().find({"product_id": p["id"]}))
+        threshold = int(p.get("low_stock_threshold", 5))
+        if stock <= threshold:
+            alerts.append({
+                "product_id": p["id"],
+                "product_name": p.get("name", ""),
+                "current_stock": stock,
+                "threshold": threshold,
+                "status": "critical" if stock == 0 else "low"
+            })
+    return {"alerts": alerts, "total_alerts": len(alerts)}
+
+# ========================
+# PRODUCT RETURNS ROUTES
+# ========================
+
+@api_router.post("/returns")
+async def create_return(data: ProductReturnCreate, current_user: dict = Depends(get_current_user)):
+    """Create a product return"""
+    sale = sales_col().find_one({"id": data.sale_id})
+    if not sale:
+        raise HTTPException(status_code=404, detail="Vente non trouvée")
+    
+    product = products_col().find_one({"id": data.product_id})
+    product_name = serialize_doc(product).get("name", "") if product else ""
+    
+    return_id = str(uuid.uuid4())
+    return_data = {
+        "id": return_id,
+        "sale_id": data.sale_id,
+        "product_id": data.product_id,
+        "product_name": product_name,
+        "quantity": data.quantity,
+        "reason": data.reason,
+        "status": "pending",
+        "processed_by": current_user.get("name"),
+        "shop_id": current_user.get("shop_id", ""),
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    returns_col().insert_one(return_data)
+    
+    # Re-add returned quantity to stock
+    batch = batches_col().find_one({"product_id": data.product_id})
+    if batch:
+        batch = serialize_doc(batch)
+        batches_col().update_one({"id": batch["id"]}, {"$set": {"quantity": int(batch.get("quantity", 0)) + data.quantity}})
+    
+    return {"message": "Retour enregistré", "return": return_data}
+
+@api_router.get("/returns")
+async def list_returns(current_user: dict = Depends(get_current_user)):
+    """List returns for the shop"""
+    shop_filter = get_shop_filter(current_user)
+    returns = list(returns_col().find(shop_filter))
+    return serialize_docs(returns)
+
+@api_router.post("/returns/{return_id}/approve")
+async def approve_return(return_id: str, current_user: dict = Depends(get_current_user)):
+    """Approve a product return"""
+    returns_col().update_one({"id": return_id}, {"$set": {"status": "approved"}})
+    return {"message": "Retour approuvé"}
+
+@api_router.post("/returns/{return_id}/reject")
+async def reject_return(return_id: str, current_user: dict = Depends(get_current_user)):
+    """Reject a product return"""
+    returns_col().update_one({"id": return_id}, {"$set": {"status": "rejected"}})
+    return {"message": "Retour rejeté"}
+
+# ========================
+# SELLER - PERFORMANCE
+# ========================
+
+@api_router.get("/seller/my-performance")
+async def seller_my_performance(current_user: dict = Depends(get_current_user)):
+    """Seller: View own sales performance"""
+    user_id = current_user["id"]
+    all_sales = list(sales_col().find({"user_id": user_id}))
+    
+    now = datetime.now(timezone.utc)
+    today = now.date().isoformat()
+    
+    today_sales = [s for s in all_sales if serialize_doc(s).get("created_at", "")[:10] == today]
+    today_revenue = sum(float(serialize_doc(s).get("total", 0)) for s in today_sales)
+    total_revenue = sum(float(serialize_doc(s).get("total", 0)) for s in all_sales)
+    
+    return {
+        "today": {
+            "sales_count": len(today_sales),
+            "revenue": today_revenue
+        },
+        "all_time": {
+            "sales_count": len(all_sales),
+            "revenue": total_revenue
+        }
+    }
+
+@api_router.get("/seller/available-products")
+async def seller_available_products(current_user: dict = Depends(get_current_user)):
+    """Seller: View available products with stock levels"""
+    shop_filter = get_shop_filter(current_user)
+    products = list(products_col().find(shop_filter))
+    result = []
+    for p in products:
+        p = serialize_doc(p)
+        stock = sum(int(serialize_doc(b).get("quantity", 0)) for b in batches_col().find({"product_id": p["id"]}))
+        if stock > 0:
+            result.append({
+                "id": p["id"],
+                "name": p.get("name", ""),
+                "sell_price": float(p.get("sell_price", p.get("price", 0))),
+                "category": p.get("category", ""),
+                "stock_quantity": stock
+            })
+    return result
+
+
 # ROOT ENDPOINT
 # ========================
 

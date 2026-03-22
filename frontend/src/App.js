@@ -28,6 +28,11 @@ import HelpCenterPage from "@/pages/HelpCenterPage";
 import SettingsPage from "@/pages/SettingsPage";
 import ShopsPage from "@/pages/ShopsPage";
 import AccessControlPage from "@/pages/AccessControlPage";
+import AdminUsersPage from "@/pages/AdminUsersPage";
+import AdminShopsPage from "@/pages/AdminShopsPage";
+import SubscriptionsPage from "@/pages/SubscriptionsPage";
+import ReturnsPage from "@/pages/ReturnsPage";
+import SellerPerformancePage from "@/pages/SellerPerformancePage";
 
 // Super Admin email - creator of the startup (TOTAL CONTROL)
 const SUPER_ADMIN_EMAIL = "bangalykaba635@gmail.com";
@@ -135,13 +140,14 @@ const AuthProvider = ({ children }) => {
   const isOwner = user?.role === 'owner' || isSuperAdmin;
   const isCEO = user?.role === 'ceo' || isOwner;
   const isManager = user?.role === 'manager' || isCEO;
-  const isCashier = user?.role === 'cashier' || isManager;
+  const isSeller = user?.role === 'seller' || isManager;
+  const isCashier = user?.role === 'cashier' || isSeller;
   const isStockManager = user?.role === 'stock_manager' || isManager;
 
   return (
     <AuthContext.Provider value={{ 
       user, token, login, logout, loading, setLoading,
-      isAuthenticated, isSuperAdmin, isOwner, isCEO, isManager, isCashier, isStockManager 
+      isAuthenticated, isSuperAdmin, isOwner, isCEO, isManager, isSeller, isCashier, isStockManager 
     }}>
       {children}
     </AuthContext.Provider>
@@ -327,6 +333,17 @@ function App() {
                   
                   {/* IRP - Incident Response Plan - Super Admin Only */}
                   <Route path="/irp" element={<ProtectedRoute requireSuperAdmin><IRPPage /></ProtectedRoute>} />
+                  
+                  {/* Admin Management Routes */}
+                  <Route path="/admin/users" element={<ProtectedRoute requireSuperAdmin><AdminUsersPage /></ProtectedRoute>} />
+                  <Route path="/admin/shops" element={<ProtectedRoute requireSuperAdmin><AdminShopsPage /></ProtectedRoute>} />
+                  <Route path="/admin/subscriptions" element={<ProtectedRoute requireSuperAdmin><SubscriptionsPage /></ProtectedRoute>} />
+                  
+                  {/* Owner / Shop Management */}
+                  <Route path="/returns" element={<ProtectedRoute><ReturnsPage /></ProtectedRoute>} />
+                  
+                  {/* Seller Performance */}
+                  <Route path="/my-performance" element={<ProtectedRoute><SellerPerformancePage /></ProtectedRoute>} />
                   
                   {/* Brand Assets - BINTRONIX */}
                   <Route path="/brand-assets" element={<ProtectedRoute requireCEO><BrandAssetsPage /></ProtectedRoute>} />

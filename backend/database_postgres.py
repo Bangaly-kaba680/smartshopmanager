@@ -20,7 +20,8 @@ COLLECTIONS = [
     "employees", "documents", "accounts", "access_requests",
     "authorized_users", "payments", "whatsapp_messages",
     "otp_codes", "incidents",
-    "whitelist", "blocked_users", "access_attempts", "sessions", "audit_log"
+    "whitelist", "blocked_users", "access_attempts", "sessions", "audit_log",
+    "returns", "subscription_plans"
 ]
 
 
