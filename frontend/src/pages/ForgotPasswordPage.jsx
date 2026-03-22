@@ -154,14 +154,16 @@ const ForgotPasswordPage = () => {
             <div className={`absolute inset-0 bg-gradient-to-t ${ad.gradient}`} />
           </>
         )}
-        <div className="absolute inset-0 flex flex-col justify-between p-12">
-          {/* Top - New CEO Photo with Support Message */}
+        <div className="absolute inset-0 flex flex-col justify-between p-12 z-10">
+          {/* Top - BINTRONIX Logo with Support Message */}
           <div className="text-center text-white">
-            <img 
-              src="/assets/bintronix-logo.png" 
-              alt="BINTRONIX" 
-              className="w-28 h-28 mx-auto rounded-full object-cover border-4 border-emerald-500 shadow-2xl mb-4"
-            />
+            <div className="w-28 h-28 mx-auto rounded-full border-4 border-emerald-500 shadow-2xl mb-4 bg-white/10 backdrop-blur-sm flex items-center justify-center overflow-hidden">
+              <img 
+                src="/assets/bintronix-logo.png" 
+                alt="BINTRONIX" 
+                className="w-24 h-24 object-cover rounded-full"
+              />
+            </div>
             <h2 className="text-2xl font-bold mb-2">Support BINTRONIX</h2>
             <p className="text-slate-300">
               Besoin d'aide? Notre équipe est là pour vous 24/7

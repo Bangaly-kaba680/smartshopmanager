@@ -1,4 +1,4 @@
-from fastapi import FastAPI, APIRouter, HTTPException, status, Request, Depends
+from fastapi import FastAPI, APIRouter, HTTPException, Request, Depends
 from fastapi.responses import StreamingResponse, HTMLResponse
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from dotenv import load_dotenv
@@ -6,19 +6,15 @@ from starlette.middleware.cors import CORSMiddleware
 import os
 import logging
 from pathlib import Path
-from pydantic import BaseModel, EmailStr
 from typing import List, Optional
 import uuid
 from datetime import datetime, timezone, timedelta
-import jwt
-from passlib.context import CryptContext
 import qrcode
 from io import BytesIO
 import base64
 from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
 from reportlab.lib.units import cm
-from emergentintegrations.llm.chat import LlmChat, UserMessage
 import asyncio
 import resend
 from database import get_database, get_collection, init_indexes
@@ -31,21 +27,35 @@ from security import (
     invalidate_session, invalidate_all_user_sessions, init_security
 )
 
+# Import models and utilities from modules
+from models.schemas import (
+    AccessRequest, ApproveAccess, UserRegister, UserLogin, UserResponse,
+    TokenResponse, ForgotPassword, TenantRegisterRequest, OTPVerify,
+    AccessActionApprove, AccessActionDeny, WhitelistAdd, BlockUser,
+    ApproveAccessRequest, ShopCreate, ShopResponse, ProductCreate,
+    ProductResponse, ProductUpdate, BatchCreate, BatchResponse, BatchUpdate,
+    SaleItemCreate, SaleCreate, SaleResponse, EmployeeCreate, EmployeeResponse,
+    EmployeeUpdate, DocumentCreate, DocumentResponse, AccountResponse,
+    AIContractRequest, AIMarketingRequest, AIHelpRequest, PaymentInitiate,
+    PaymentResponse, WhatsAppReceipt, IRPCreate, IRPUpdate
+)
+from utils import (
+    pwd_context, ADMIN_EMAIL, otp_storage, generate_otp, store_otp, verify_otp,
+    users_col, shops_col, products_col, batches_col, sales_col, sale_items_col,
+    employees_col, documents_col, accounts_col, access_requests_col,
+    authorized_users_col, payments_col, whatsapp_messages_col, incidents_col,
+    serialize_doc, serialize_docs, create_access_token, verify_token,
+    get_current_user, get_shop_filter, is_admin_role, generate_ai_content,
+    security, EMERGENT_API_KEY
+)
+
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
-
-# JWT Configuration
-JWT_SECRET = os.environ.get('JWT_SECRET', 'super-secret-key')
-JWT_ALGORITHM = "HS256"
-JWT_EXPIRATION_HOURS = 24
 
 # Resend Configuration
 resend.api_key = os.environ.get('RESEND_API_KEY', '')
 SENDER_EMAIL = os.environ.get('SENDER_EMAIL', 'onboarding@resend.dev')
 ADMIN_NOTIFICATION_EMAIL = os.environ.get('ADMIN_NOTIFICATION_EMAIL', 'bangalykaba635@gmail.com')
-
-# Password hashing
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 # Create the main app
 app = FastAPI(title="StartupManager Pro API")
@@ -53,110 +63,15 @@ app = FastAPI(title="StartupManager Pro API")
 # Create a router with the /api prefix
 api_router = APIRouter(prefix="/api")
 
-# Admin email for access control
-ADMIN_EMAIL = "bangalykaba635@gmail.com"
-
-# OTP Storage for 2FA (in production, use Redis)
-import random
-import string
-otp_storage = {}
-
-def generate_otp(length=6):
-    """Generate a random OTP code"""
-    return ''.join(random.choices(string.digits, k=length))
-
-def store_otp(email: str, otp: str, data: dict = None):
-    """Store OTP with expiration (5 minutes)"""
-    otp_storage[email] = {
-        "otp": otp,
-        "data": data,
-        "expires": datetime.now(timezone.utc) + timedelta(minutes=5)
-    }
-
-def verify_otp(email: str, otp: str):
-    """Verify OTP and return stored data if valid"""
-    if email not in otp_storage:
-        return None, "Code OTP non trouvé"
-    
-    stored = otp_storage[email]
-    if datetime.now(timezone.utc) > stored["expires"]:
-        del otp_storage[email]
-        return None, "Code OTP expiré"
-    
-    if stored["otp"] != otp:
-        return None, "Code OTP invalide"
-    
-    data = stored["data"]
-    del otp_storage[email]
-    return data, None
-
 # IRP (Incident Response Plan) Storage
 irp_incidents = []
-
-# ========================
-# MONGODB COLLECTIONS
-# ========================
-def users_col():
-    return get_collection('users')
-
-def shops_col():
-    return get_collection('shops')
-
-def products_col():
-    return get_collection('products')
-
-def batches_col():
-    return get_collection('batches')
-
-def sales_col():
-    return get_collection('sales')
-
-def sale_items_col():
-    return get_collection('sale_items')
-
-def employees_col():
-    return get_collection('employees')
-
-def documents_col():
-    return get_collection('documents')
-
-def accounts_col():
-    return get_collection('accounts')
-
-def access_requests_col():
-    return get_collection('access_requests')
-
-def authorized_users_col():
-    return get_collection('authorized_users')
-
-def payments_col():
-    return get_collection('payments')
-
-def whatsapp_messages_col():
-    return get_collection('whatsapp_messages')
-
-# ========================
-# HELPER FUNCTIONS
-# ========================
-def serialize_doc(doc):
-    """Convert MongoDB document to JSON-serializable dict"""
-    if doc is None:
-        return None
-    doc = dict(doc)
-    if '_id' in doc:
-        del doc['_id']
-    return doc
-
-def serialize_docs(docs):
-    """Convert list of MongoDB documents"""
-    return [serialize_doc(doc) for doc in docs]
 
 # ========================
 # INITIALIZE DEMO DATA
 # ========================
 def init_demo_data():
     """Initialize demo data if database is empty"""
-    db = get_database()
+    get_database()
     
     # Always ensure super admin exists
     super_admin = users_col().find_one({"email": ADMIN_EMAIL})
@@ -292,7 +207,6 @@ async def send_access_notification_email(request_name: str, request_email: str, 
             return False
         
         app_url = os.environ.get('APP_URL', 'https://startup-manager-pro.preview.emergentagent.com')
-        api_url = f"{app_url}/api"
         
         html_content = f"""
 <!DOCTYPE html>
@@ -403,28 +317,6 @@ async def send_access_notification_email(request_name: str, request_email: str, 
         return False
 
 # ========================
-# AI CONTENT GENERATION
-# ========================
-async def generate_ai_content(prompt: str, system_message: str = "Tu es un assistant professionnel pour la gestion d'entreprise.") -> str:
-    try:
-        api_key = os.environ.get('EMERGENT_LLM_KEY')
-        if not api_key:
-            return "Clé API non configurée. Contenu de démonstration généré."
-        
-        chat = LlmChat(
-            api_key=api_key,
-            session_id=str(uuid.uuid4()),
-            system_message=system_message
-        ).with_model("openai", "gpt-5.2")
-        
-        user_message = UserMessage(text=prompt)
-        response = await chat.send_message(user_message)
-        return response
-    except Exception as e:
-        logging.error(f"AI Generation Error: {e}")
-        return f"Erreur de génération IA. Contenu par défaut fourni."
-
-# ========================
 # RESULT PAGE FOR EMAIL ACTIONS
 # ========================
 def get_result_page(status: str, message: str) -> str:
@@ -527,276 +419,6 @@ def get_result_page(status: str, message: str) -> str:
     </body>
     </html>
     """
-
-# ========================
-# PYDANTIC MODELS
-# ========================
-
-# Access Request Models
-class AccessRequest(BaseModel):
-    name: str
-    email: EmailStr
-    reason: Optional[str] = None
-
-class ApproveAccess(BaseModel):
-    access_type: str
-
-# Auth Models
-class UserRegister(BaseModel):
-    name: str
-    email: EmailStr
-    password: str
-    role: str = "cashier"
-
-class UserLogin(BaseModel):
-    email: EmailStr
-    password: str
-
-class UserResponse(BaseModel):
-    id: str
-    name: str
-    email: str
-    role: str
-    shop_id: Optional[str] = None
-    tenant_id: Optional[str] = None
-
-class TokenResponse(BaseModel):
-    access_token: str
-    token_type: str = "bearer"
-    user: UserResponse
-
-class ForgotPassword(BaseModel):
-    email: EmailStr
-
-# Access Action Models (for email links)
-class AccessActionApprove(BaseModel):
-    request_id: str
-    access_type: str = "permanent"
-
-class AccessActionDeny(BaseModel):
-    request_id: str
-
-# Security Models
-class WhitelistAdd(BaseModel):
-    email: EmailStr
-    name: str
-    role: str = "viewer"
-
-class BlockUser(BaseModel):
-    email: EmailStr
-    reason: Optional[str] = None
-
-class ApproveAccessRequest(BaseModel):
-    attempt_id: str
-    role: str = "viewer"
-
-# Shop Models
-class ShopCreate(BaseModel):
-    name: str
-    address: str
-    phone: str
-    orange_money_number: Optional[str] = None
-    bank_account: Optional[str] = None
-
-class ShopResponse(BaseModel):
-    id: str
-    name: str
-    address: str
-    phone: str
-    orange_money_number: Optional[str] = None
-    bank_account: Optional[str] = None
-
-# Product Models
-class ProductCreate(BaseModel):
-    name: str
-    category: str
-    price: float
-    description: Optional[str] = None
-    image_url: Optional[str] = None
-
-class ProductResponse(BaseModel):
-    id: str
-    shop_id: str
-    name: str
-    category: str
-    price: float
-    description: Optional[str] = None
-    image_url: Optional[str] = None
-    created_at: str
-    stock_quantity: int = 0
-
-class ProductUpdate(BaseModel):
-    name: Optional[str] = None
-    category: Optional[str] = None
-    price: Optional[float] = None
-    description: Optional[str] = None
-    image_url: Optional[str] = None
-
-# Batch/Stock Models
-class BatchCreate(BaseModel):
-    product_id: str
-    lot_number: Optional[str] = None
-    size: str
-    color: str
-    quantity: int
-
-class BatchResponse(BaseModel):
-    id: str
-    product_id: str
-    product_name: Optional[str] = None
-    lot_number: str
-    size: str
-    color: str
-    quantity: int
-    qr_code: Optional[str] = None
-    created_at: str
-
-class BatchUpdate(BaseModel):
-    quantity: Optional[int] = None
-    size: Optional[str] = None
-    color: Optional[str] = None
-
-# Sale Models
-class SaleItemCreate(BaseModel):
-    product_id: str
-    quantity: int
-    price: float
-
-class SaleCreate(BaseModel):
-    items: List[SaleItemCreate]
-    payment_method: str
-    customer_phone: Optional[str] = None
-
-class SaleResponse(BaseModel):
-    id: str
-    shop_id: str
-    user_id: str
-    total: float
-    payment_method: str
-    customer_phone: Optional[str] = None
-    items: List[dict] = []
-    created_at: str
-
-# Employee Models
-class EmployeeCreate(BaseModel):
-    name: str
-    position: str
-    salary: float
-    contract_type: str
-
-class EmployeeResponse(BaseModel):
-    id: str
-    shop_id: str
-    name: str
-    position: str
-    salary: float
-    contract_type: str
-
-class EmployeeUpdate(BaseModel):
-    name: Optional[str] = None
-    position: Optional[str] = None
-    salary: Optional[float] = None
-    contract_type: Optional[str] = None
-
-# Document Models
-class DocumentCreate(BaseModel):
-    employee_id: str
-    type: str
-
-class DocumentResponse(BaseModel):
-    id: str
-    employee_id: str
-    employee_name: Optional[str] = None
-    type: str
-    content: str
-    signed: bool
-    created_at: str
-
-# Account Models
-class AccountResponse(BaseModel):
-    id: str
-    shop_id: str
-    type: str
-    balance: float
-
-# AI Models
-class AIContractRequest(BaseModel):
-    employee_id: str
-
-class AIMarketingRequest(BaseModel):
-    type: str
-    title: str
-    description: str
-    price: Optional[float] = None
-
-class AIHelpRequest(BaseModel):
-    question: str
-
-# Payment Models
-class PaymentInitiate(BaseModel):
-    amount: float
-    phone: Optional[str] = None
-    sale_id: Optional[str] = None
-
-class PaymentResponse(BaseModel):
-    status: str
-    transaction_id: str
-    message: str
-    details: Optional[dict] = None
-
-# WhatsApp Models
-class WhatsAppReceipt(BaseModel):
-    phone: str
-    sale_id: str
-
-# ========================
-# JWT FUNCTIONS
-# ========================
-def create_access_token(data: dict):
-    to_encode = data.copy()
-    expire = datetime.now(timezone.utc) + timedelta(hours=JWT_EXPIRATION_HOURS)
-    to_encode.update({"exp": expire})
-    return jwt.encode(to_encode, JWT_SECRET, algorithm=JWT_ALGORITHM)
-
-def verify_token(token: str):
-    try:
-        payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
-        return payload
-    except jwt.ExpiredSignatureError:
-        raise HTTPException(status_code=401, detail="Token expiré")
-    except jwt.InvalidTokenError:
-        raise HTTPException(status_code=401, detail="Token invalide")
-
-# Security dependency for protected routes
-security = HTTPBearer(auto_error=False)
-
-async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
-    """Get current user from JWT token"""
-    if not credentials:
-        raise HTTPException(status_code=401, detail="Non authentifié")
-    
-    payload = verify_token(credentials.credentials)
-    user = users_col().find_one({"id": payload.get("user_id")})
-    if not user:
-        raise HTTPException(status_code=401, detail="Utilisateur non trouvé")
-    
-    return serialize_doc(user)
-
-def get_shop_filter(user: dict) -> dict:
-    """Return a filter dict to scope queries by the user's shop.
-    Super Admin / CEO roles see ALL data (no filter).
-    Owners and below only see their own shop's data."""
-    role = user.get("role", "")
-    if role in ("super_admin", "ceo"):
-        return {}
-    shop_id = user.get("shop_id")
-    if shop_id:
-        return {"shop_id": shop_id}
-    return {}
-
-def is_admin_role(user: dict) -> bool:
-    """Check if user has admin-level access (sees all data)."""
-    return user.get("role") in ("super_admin", "ceo")
 
 # ========================
 # ACCESS CONTROL ROUTES
@@ -1127,7 +749,7 @@ async def check_user_access(email: str):
     return {"has_access": False, "reason": "not_whitelisted"}
 
 @api_router.post("/security/request-access")
-async def request_access(request: Request, data: AccessRequest):
+async def security_request_access(request: Request, data: AccessRequest):
     """Request access to the application - sends notification to Super Admin"""
     email = data.email.lower()
     
@@ -1318,18 +940,6 @@ async def send_access_request_notification(name: str, email: str, attempt_id: st
 # ========================
 # AUTH ROUTES
 # ========================
-
-# 2FA Registration - Step 1: Request
-class TenantRegisterRequest(BaseModel):
-    company_name: str
-    owner_name: str
-    email: EmailStr
-    password: str
-    phone: Optional[str] = None
-
-class OTPVerify(BaseModel):
-    email: EmailStr
-    otp: str
 
 @api_router.post("/auth/register-request")
 async def request_registration(data: TenantRegisterRequest):
@@ -1573,7 +1183,7 @@ async def login(credentials: UserLogin):
 
 @api_router.post("/auth/forgot-password")
 async def forgot_password(data: ForgotPassword):
-    user = users_col().find_one({"email": data.email})
+    users_col().find_one({"email": data.email})
     return {"message": "Si cet email existe, un lien de réinitialisation a été envoyé."}
 
 # ========================
@@ -2704,18 +2314,6 @@ async def export_employees_csv(current_user: dict = Depends(get_current_user)):
 # IRP (Incident Response Plan) ROUTES
 # ========================
 
-class IRPCreate(BaseModel):
-    title: str
-    description: str
-    severity: str = "medium"
-    category: str = "technical"
-    affected_area: Optional[str] = None
-
-class IRPUpdate(BaseModel):
-    status: Optional[str] = None
-    resolution: Optional[str] = None
-    root_cause: Optional[str] = None
-
 @api_router.post("/irp/incidents")
 async def create_irp_incident(data: IRPCreate, current_user: dict = Depends(get_current_user)):
     """Create a new incident report"""
@@ -2751,13 +2349,13 @@ async def create_irp_incident(data: IRPCreate, current_user: dict = Depends(get_
     return {"message": "Incident créé", "incident": incident}
 
 @api_router.get("/irp/incidents")
-async def list_irp_incidents(status: Optional[str] = None, current_user: dict = Depends(get_current_user)):
+async def list_irp_incidents(filter_status: Optional[str] = None, current_user: dict = Depends(get_current_user)):
     """List all incidents"""
     if current_user.get("role") not in ["ceo", "super_admin", "owner"]:
         raise HTTPException(status_code=403, detail="Accès non autorisé")
     
-    if status:
-        filtered = [i for i in irp_incidents if i["status"] == status]
+    if filter_status:
+        filtered = [i for i in irp_incidents if i["status"] == filter_status]
         return {"total": len(filtered), "incidents": filtered}
     return {"total": len(irp_incidents), "incidents": irp_incidents}
 
@@ -2835,16 +2433,10 @@ async def ai_analyze_irp_incident(incident_id: int, current_user: dict = Depends
     """
     
     try:
-        llm_key = os.environ.get('EMERGENT_LLM_KEY', '')
-        if llm_key:
-            llm = LlmChat(
-                api_key=llm_key, 
-                session_id=str(uuid.uuid4()),
-                system_message="Tu es un expert en gestion d'incidents IT. Réponds en français de manière structurée."
-            )
-            analysis = await llm.chat(prompt)
-        else:
-            analysis = "Service IA non disponible. Veuillez configurer EMERGENT_LLM_KEY."
+        analysis = await generate_ai_content(
+            prompt,
+            "Tu es un expert en gestion d'incidents IT. Réponds en français de manière structurée."
+        )
     except Exception as e:
         analysis = f"Erreur IA: {str(e)}"
     
