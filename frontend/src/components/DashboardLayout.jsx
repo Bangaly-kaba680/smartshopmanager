@@ -12,33 +12,38 @@ import {
 import { cn } from '@/lib/utils';
 
 const menuItems = [
-  // === ADMIN PLATFORM ===
-  { path: '/ceo-control', icon: Command, label: 'CEO Control', roles: ['super_admin'] },
-  { path: '/irp', icon: AlertTriangle, label: 'IRP Incidents', roles: ['super_admin'] },
-  { path: '/admin/users', icon: UserCog, label: 'Gestion Utilisateurs', roles: ['super_admin'] },
-  { path: '/admin/shops', icon: Store, label: 'Gestion Boutiques', roles: ['super_admin'] },
-  { path: '/admin/subscriptions', icon: CreditCard, label: 'Abonnements', roles: ['super_admin'] },
-  { path: '/security', icon: ShieldCheck, label: 'Sécurité', roles: ['super_admin', 'ceo'] },
-  { path: '/brand-assets', icon: Building2, label: 'BINTRONIX Assets', roles: ['super_admin', 'ceo'] },
-  
-  // === OWNER / MANAGER ===
-  { path: '/dashboard', icon: LayoutDashboard, label: 'Dashboard', roles: ['super_admin', 'owner', 'ceo', 'manager', 'seller', 'cashier'] },
-  { path: '/shops', icon: Store, label: 'Ma Boutique', roles: ['owner', 'ceo'] },
-  { path: '/products', icon: Package, label: 'Produits', roles: ['super_admin', 'owner', 'ceo', 'manager', 'seller'] },
-  { path: '/stock', icon: Boxes, label: 'Stock', roles: ['super_admin', 'owner', 'ceo', 'manager'] },
-  { path: '/employees', icon: Users, label: 'Employés', roles: ['super_admin', 'owner', 'ceo'] },
-  { path: '/pos', icon: ShoppingCart, label: 'Ventes (POS)', roles: ['super_admin', 'owner', 'ceo', 'manager', 'seller', 'cashier'] },
-  { path: '/returns', icon: RotateCcw, label: 'Retours', roles: ['super_admin', 'owner', 'ceo', 'manager', 'seller'] },
-  { path: '/finances', icon: DollarSign, label: 'Finances', roles: ['super_admin', 'owner', 'ceo'] },
-  { path: '/rh-ia', icon: Brain, label: 'RH IA', roles: ['super_admin', 'owner', 'ceo'] },
-  { path: '/marketing-ia', icon: Megaphone, label: 'Marketing IA', roles: ['super_admin', 'owner', 'ceo'] },
-  
-  // === SELLER ===
-  { path: '/my-performance', icon: TrendingUp, label: 'Mes Performances', roles: ['seller', 'cashier'] },
-  
-  // === ALL ===
-  { path: '/help', icon: HelpCircle, label: "Centre d'aide", roles: ['super_admin', 'owner', 'ceo', 'manager', 'seller', 'cashier'] },
-  { path: '/settings', icon: Settings, label: 'Paramètres', roles: ['super_admin', 'owner', 'ceo', 'manager', 'seller', 'cashier'] },
+  // === SUPER ADMIN — Strategic Platform Management Only ===
+  { path: '/dashboard', icon: LayoutDashboard, label: 'Vue Plateforme', roles: ['super_admin'], section: 'admin' },
+  { path: '/admin/users', icon: UserCog, label: 'Gestion Utilisateurs', roles: ['super_admin'], section: 'admin' },
+  { path: '/admin/shops', icon: Store, label: 'Gestion Boutiques', roles: ['super_admin'], section: 'admin' },
+  { path: '/admin/subscriptions', icon: CreditCard, label: 'Abonnements', roles: ['super_admin'], section: 'admin' },
+  { path: '/ceo-control', icon: Command, label: 'CEO Control', roles: ['super_admin'], section: 'admin' },
+  { path: '/irp', icon: AlertTriangle, label: 'IRP Incidents', roles: ['super_admin'], section: 'admin' },
+  { path: '/security', icon: ShieldCheck, label: 'Securite', roles: ['super_admin'], section: 'admin' },
+  { path: '/brand-assets', icon: Building2, label: 'BINTRONIX Assets', roles: ['super_admin'], section: 'admin' },
+
+  // === OWNER / CEO / MANAGER — Operational Shop Management ===
+  { path: '/dashboard', icon: LayoutDashboard, label: 'Dashboard', roles: ['owner', 'ceo', 'manager'], section: 'owner' },
+  { path: '/shops', icon: Store, label: 'Ma Boutique', roles: ['owner', 'ceo'], section: 'owner' },
+  { path: '/products', icon: Package, label: 'Produits', roles: ['owner', 'ceo', 'manager'], section: 'owner' },
+  { path: '/stock', icon: Boxes, label: 'Stock', roles: ['owner', 'ceo', 'manager'], section: 'owner' },
+  { path: '/employees', icon: Users, label: 'Employes', roles: ['owner', 'ceo'], section: 'owner' },
+  { path: '/pos', icon: ShoppingCart, label: 'Ventes (POS)', roles: ['owner', 'ceo', 'manager'], section: 'owner' },
+  { path: '/returns', icon: RotateCcw, label: 'Retours', roles: ['owner', 'ceo', 'manager'], section: 'owner' },
+  { path: '/finances', icon: DollarSign, label: 'Finances', roles: ['owner', 'ceo'], section: 'owner' },
+  { path: '/rh-ia', icon: Brain, label: 'RH IA', roles: ['owner', 'ceo'], section: 'owner' },
+  { path: '/marketing-ia', icon: Megaphone, label: 'Marketing IA', roles: ['owner', 'ceo'], section: 'owner' },
+
+  // === SELLER / CASHIER — Daily Operations ===
+  { path: '/dashboard', icon: LayoutDashboard, label: 'Mon Espace', roles: ['seller', 'cashier'], section: 'seller' },
+  { path: '/pos', icon: ShoppingCart, label: 'Ventes (POS)', roles: ['seller', 'cashier'], section: 'seller' },
+  { path: '/products', icon: Package, label: 'Produits', roles: ['seller'], section: 'seller' },
+  { path: '/returns', icon: RotateCcw, label: 'Retours', roles: ['seller'], section: 'seller' },
+  { path: '/my-performance', icon: TrendingUp, label: 'Mes Performances', roles: ['seller', 'cashier'], section: 'seller' },
+
+  // === ALL ROLES — Common ===
+  { path: '/help', icon: HelpCircle, label: "Centre d'aide", roles: ['super_admin', 'owner', 'ceo', 'manager', 'seller', 'cashier'], section: 'common' },
+  { path: '/settings', icon: Settings, label: 'Parametres', roles: ['super_admin', 'owner', 'ceo', 'manager', 'seller', 'cashier'], section: 'common' },
 ];
 
 const DashboardLayout = ({ children, title }) => {
@@ -51,6 +56,14 @@ const DashboardLayout = ({ children, title }) => {
 
   const userRole = user?.role || 'cashier';
   const filteredMenuItems = menuItems.filter(item => item.roles.includes(userRole));
+
+  // Section labels for sidebar groups
+  const sectionLabels = {
+    admin: 'Administration',
+    owner: 'Gestion Boutique',
+    seller: 'Mon Travail',
+    common: 'General',
+  };
 
   const handleLogout = () => {
     logout();
@@ -111,26 +124,38 @@ const DashboardLayout = ({ children, title }) => {
         {/* Navigation */}
         <ScrollArea className="flex-1 py-4">
           <nav className="space-y-1 px-3">
-            {filteredMenuItems.map((item) => {
-              const isActive = location.pathname === item.path;
-              return (
-                <Link
-                  key={item.path}
-                  to={item.path}
-                  onClick={() => setMobileMenuOpen(false)}
-                  data-testid={`nav-${item.path.replace('/', '')}`}
-                  className={cn(
-                    "flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors",
-                    isActive 
-                      ? "bg-primary text-primary-foreground" 
-                      : "text-muted-foreground hover:bg-muted hover:text-foreground"
-                  )}
-                >
-                  <item.icon className="h-5 w-5 shrink-0" />
-                  {sidebarOpen && <span className="text-sm font-medium">{item.label}</span>}
-                </Link>
-              );
-            })}
+            {(() => {
+              let lastSection = null;
+              return filteredMenuItems.map((item, idx) => {
+                const isActive = location.pathname === item.path;
+                const showSection = item.section !== lastSection && sidebarOpen;
+                lastSection = item.section;
+                return (
+                  <React.Fragment key={`${item.path}-${item.section}-${idx}`}>
+                    {showSection && idx > 0 && <div className="border-t border-border my-2" />}
+                    {showSection && (
+                      <p className="text-[10px] uppercase tracking-wider text-muted-foreground/60 font-semibold px-3 pt-2 pb-1">
+                        {sectionLabels[item.section] || ''}
+                      </p>
+                    )}
+                    <Link
+                      to={item.path}
+                      onClick={() => setMobileMenuOpen(false)}
+                      data-testid={`nav-${item.path.replace(/\//g, '-').replace(/^-/, '')}`}
+                      className={cn(
+                        "flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors",
+                        isActive
+                          ? "bg-primary text-primary-foreground"
+                          : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                      )}
+                    >
+                      <item.icon className="h-5 w-5 shrink-0" />
+                      {sidebarOpen && <span className="text-sm font-medium">{item.label}</span>}
+                    </Link>
+                  </React.Fragment>
+                );
+              });
+            })()}
           </nav>
         </ScrollArea>
 
@@ -145,9 +170,15 @@ const DashboardLayout = ({ children, title }) => {
                   userRole === 'super_admin' ? 'bg-red-500/20 text-red-400' :
                   userRole === 'ceo' ? 'bg-amber-500/20 text-amber-400' :
                   userRole === 'owner' ? 'bg-emerald-500/20 text-emerald-400' :
+                  userRole === 'manager' ? 'bg-purple-500/20 text-purple-400' :
                   'bg-blue-500/20 text-blue-400'
                 )}>
-                  {userRole === 'super_admin' ? 'Super Admin' : userRole}
+                  {userRole === 'super_admin' ? 'Fondateur' : 
+                   userRole === 'ceo' ? 'CEO' :
+                   userRole === 'owner' ? 'Proprietaire' : 
+                   userRole === 'manager' ? 'Manager' :
+                   userRole === 'seller' ? 'Vendeur' :
+                   userRole === 'cashier' ? 'Caissier' : userRole}
                 </span>
               </div>
             </div>
