@@ -6,7 +6,7 @@ import pytest
 import requests
 import os
 
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://startup-manager-pro.preview.emergentagent.com')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://admin-strategic-hub.preview.emergentagent.com')
 
 class TestAPIRoot:
     """Test API root and database verification"""
