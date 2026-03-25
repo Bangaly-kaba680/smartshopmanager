@@ -2772,7 +2772,7 @@ async def admin_set_user_subscription(user_id: str, plan_name: str, current_user
 
 @api_router.get("/admin/platform-stats")
 async def admin_platform_stats(current_user: dict = Depends(get_current_user)):
-    """Admin: Global platform statistics"""
+    """Admin: Global platform statistics with multi-tenancy monitoring"""
     if not is_admin_role(current_user):
         raise HTTPException(status_code=403, detail="Accès réservé aux administrateurs")
     
@@ -2796,15 +2796,82 @@ async def admin_platform_stats(current_user: dict = Depends(get_current_user)):
     monthly_sales = [s for s in all_sales if serialize_doc(s).get("created_at", "")[:7] == current_month]
     monthly_revenue = sum(float(serialize_doc(s).get("total", 0)) for s in monthly_sales)
     
-    # Users by role
+    # Users by role (all roles)
     owners = users_col().count_documents({"role": "owner"})
+    ceos = users_col().count_documents({"role": "ceo"})
     sellers = users_col().count_documents({"role": "seller"})
     managers = users_col().count_documents({"role": "manager"})
+    cashiers = users_col().count_documents({"role": "cashier"})
+    stock_managers = users_col().count_documents({"role": "stock_manager"})
+    
+    # === MULTI-TENANCY MONITORING: Per-shop breakdown ===
+    all_shops = list(shops_col().find())
+    all_employees = list(employees_col().find())
+    all_products = list(products_col().find())
+    
+    tenants = []
+    for shop in all_shops:
+        shop_data = serialize_doc(shop)
+        shop_id = shop_data.get("id", "")
+        shop_name = shop_data.get("name", "Sans nom")
+        
+        # Count per shop
+        shop_employees = [e for e in all_employees if serialize_doc(e).get("shop_id") == shop_id]
+        shop_products = [p for p in all_products if serialize_doc(p).get("shop_id") == shop_id]
+        shop_sales = [s for s in all_sales if serialize_doc(s).get("shop_id") == shop_id]
+        shop_today_sales = [s for s in shop_sales if serialize_doc(s).get("created_at", "")[:10] == today]
+        shop_monthly_sales = [s for s in shop_sales if serialize_doc(s).get("created_at", "")[:7] == current_month]
+        
+        shop_revenue = sum(float(serialize_doc(s).get("total", 0)) for s in shop_sales)
+        shop_today_revenue = sum(float(serialize_doc(s).get("total", 0)) for s in shop_today_sales)
+        shop_monthly_revenue = sum(float(serialize_doc(s).get("total", 0)) for s in shop_monthly_sales)
+        
+        # Employees by role in this shop
+        emp_roles = {}
+        for e in shop_employees:
+            ed = serialize_doc(e)
+            r = ed.get("role", "seller")
+            emp_roles[r] = emp_roles.get(r, 0) + 1
+        
+        # Find owner user
+        owner_user = users_col().find_one({"shop_id": shop_id, "role": {"$in": ["owner", "ceo"]}})
+        owner_name = serialize_doc(owner_user).get("name", "") if owner_user else ""
+        owner_email = serialize_doc(owner_user).get("email", "") if owner_user else ""
+        
+        tenants.append({
+            "shop_id": shop_id,
+            "shop_name": shop_name,
+            "owner_name": owner_name,
+            "owner_email": owner_email,
+            "is_active": shop_data.get("is_active", True),
+            "created_at": shop_data.get("created_at", ""),
+            "total_employees": len(shop_employees),
+            "employees_by_role": emp_roles,
+            "total_products": len(shop_products),
+            "total_sales": len(shop_sales),
+            "total_revenue": shop_revenue,
+            "today_sales": len(shop_today_sales),
+            "today_revenue": shop_today_revenue,
+            "monthly_sales": len(shop_monthly_sales),
+            "monthly_revenue": shop_monthly_revenue,
+        })
+    
+    # Sort tenants by revenue (most active first)
+    tenants.sort(key=lambda t: t["total_revenue"], reverse=True)
+    
+    # Recent platform activity (last 10)
+    recent_activity = list(activity_log_col().find().sort("created_at", -1).limit(10))
     
     return {
         "total_users": total_users,
         "active_users": active_users,
-        "users_by_role": {"owners": owners, "sellers": sellers, "managers": managers},
+        "users_by_role": {
+            "owners": owners + ceos,
+            "sellers": sellers,
+            "managers": managers,
+            "cashiers": cashiers,
+            "stock_managers": stock_managers,
+        },
         "total_shops": total_shops,
         "active_shops": active_shops,
         "total_products": total_products,
@@ -2813,7 +2880,9 @@ async def admin_platform_stats(current_user: dict = Depends(get_current_user)):
         "today_revenue": today_revenue,
         "today_sales_count": len(today_sales),
         "monthly_revenue": monthly_revenue,
-        "monthly_sales_count": len(monthly_sales)
+        "monthly_sales_count": len(monthly_sales),
+        "tenants": tenants,
+        "recent_activity": serialize_docs(recent_activity),
     }
 
 # ========================
