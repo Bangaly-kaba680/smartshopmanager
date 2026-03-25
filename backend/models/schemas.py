@@ -189,6 +189,7 @@ class ProductResponse(BaseModel):
     price: float = 0
     description: Optional[str] = None
     image_url: Optional[str] = None
+    qr_code: Optional[str] = None
     created_at: str = ""
     stock_quantity: int = 0
     low_stock_threshold: int = 5
@@ -280,14 +281,15 @@ class ProductReturnResponse(BaseModel):
 
 
 # ========================
-# EMPLOYEE MODELS (with permissions)
+# EMPLOYEE MODELS (with permissions + role)
 # ========================
 class EmployeeCreate(BaseModel):
     name: str
     email: Optional[EmailStr] = None
     position: str
-    salary: float
-    contract_type: str
+    role: str = "seller"  # manager, seller, cashier, stock_manager
+    salary: float = 0
+    contract_type: str = "CDI"
     phone: Optional[str] = None
     can_sell: bool = True
     can_modify_stock: bool = False
@@ -300,6 +302,7 @@ class EmployeeResponse(BaseModel):
     name: str
     email: Optional[str] = None
     position: str
+    role: str = "seller"
     salary: float = 0
     contract_type: str = ""
     phone: Optional[str] = None
@@ -308,10 +311,13 @@ class EmployeeResponse(BaseModel):
     can_view_reports: bool = False
     can_manage_returns: bool = False
     user_id: Optional[str] = None
+    is_active: bool = True
+    created_at: Optional[str] = None
 
 class EmployeeUpdate(BaseModel):
     name: Optional[str] = None
     position: Optional[str] = None
+    role: Optional[str] = None
     salary: Optional[float] = None
     contract_type: Optional[str] = None
     phone: Optional[str] = None
@@ -319,6 +325,35 @@ class EmployeeUpdate(BaseModel):
     can_modify_stock: Optional[bool] = None
     can_view_reports: Optional[bool] = None
     can_manage_returns: Optional[bool] = None
+    is_active: Optional[bool] = None
+
+
+# ========================
+# STOCK REQUEST MODELS (approval workflow)
+# ========================
+class StockRequestCreate(BaseModel):
+    product_id: str
+    batch_id: Optional[str] = None
+    action: str  # add, remove, adjust
+    quantity: int
+    reason: str = ""
+
+class StockRequestResponse(BaseModel):
+    id: str
+    shop_id: str = ""
+    product_id: str
+    product_name: str = ""
+    batch_id: Optional[str] = None
+    action: str
+    quantity: int
+    reason: str = ""
+    status: str = "pending"
+    requested_by: str = ""
+    requested_by_name: str = ""
+    approved_by: Optional[str] = None
+    approved_by_name: Optional[str] = None
+    created_at: str = ""
+    processed_at: Optional[str] = None
 
 
 # ========================

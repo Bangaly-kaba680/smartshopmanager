@@ -7,7 +7,7 @@ import {
   LayoutDashboard, Store, Users, Package, Boxes, ShoppingCart, 
   DollarSign, Brain, Megaphone, HelpCircle, Settings,
   LogOut, Sun, Moon, Menu, X, ChevronLeft, Shield, ShieldCheck, Building2, Command, AlertTriangle,
-  UserCog, CreditCard, RotateCcw, TrendingUp, BarChart3
+  UserCog, CreditCard, RotateCcw, TrendingUp, BarChart3, ClipboardCheck
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -22,28 +22,45 @@ const menuItems = [
   { path: '/security', icon: ShieldCheck, label: 'Securite', roles: ['super_admin'], section: 'admin' },
   { path: '/brand-assets', icon: Building2, label: 'BINTRONIX Assets', roles: ['super_admin'], section: 'admin' },
 
-  // === OWNER / CEO / MANAGER — Operational Shop Management ===
-  { path: '/dashboard', icon: LayoutDashboard, label: 'Dashboard', roles: ['owner', 'ceo', 'manager'], section: 'owner' },
+  // === OWNER / CEO — Strategic view of their business ===
+  { path: '/dashboard', icon: LayoutDashboard, label: 'Dashboard', roles: ['owner', 'ceo'], section: 'owner' },
   { path: '/shops', icon: Store, label: 'Ma Boutique', roles: ['owner', 'ceo'], section: 'owner' },
-  { path: '/products', icon: Package, label: 'Produits', roles: ['owner', 'ceo', 'manager'], section: 'owner' },
-  { path: '/stock', icon: Boxes, label: 'Stock', roles: ['owner', 'ceo', 'manager'], section: 'owner' },
+  { path: '/products', icon: Package, label: 'Produits', roles: ['owner', 'ceo'], section: 'owner' },
+  { path: '/stock', icon: Boxes, label: 'Stock', roles: ['owner', 'ceo'], section: 'owner' },
   { path: '/employees', icon: Users, label: 'Employes', roles: ['owner', 'ceo'], section: 'owner' },
-  { path: '/pos', icon: ShoppingCart, label: 'Ventes (POS)', roles: ['owner', 'ceo', 'manager'], section: 'owner' },
-  { path: '/returns', icon: RotateCcw, label: 'Retours', roles: ['owner', 'ceo', 'manager'], section: 'owner' },
+  { path: '/pos', icon: ShoppingCart, label: 'Ventes', roles: ['owner', 'ceo'], section: 'owner' },
+  { path: '/returns', icon: RotateCcw, label: 'Retours', roles: ['owner', 'ceo'], section: 'owner' },
   { path: '/finances', icon: DollarSign, label: 'Finances', roles: ['owner', 'ceo'], section: 'owner' },
-  { path: '/rh-ia', icon: Brain, label: 'RH IA', roles: ['owner', 'ceo'], section: 'owner' },
-  { path: '/marketing-ia', icon: Megaphone, label: 'Marketing IA', roles: ['owner', 'ceo'], section: 'owner' },
+  { path: '/stock-approvals', icon: ClipboardCheck, label: 'Approbations Stock', roles: ['owner', 'ceo'], section: 'owner' },
 
-  // === SELLER / CASHIER — Daily Operations ===
-  { path: '/dashboard', icon: LayoutDashboard, label: 'Mon Espace', roles: ['seller', 'cashier'], section: 'seller' },
-  { path: '/pos', icon: ShoppingCart, label: 'Ventes (POS)', roles: ['seller', 'cashier'], section: 'seller' },
+  // === MANAGER — Supervision, approvals, no sales ===
+  { path: '/dashboard', icon: LayoutDashboard, label: 'Dashboard', roles: ['manager'], section: 'manager' },
+  { path: '/products', icon: Package, label: 'Produits', roles: ['manager'], section: 'manager' },
+  { path: '/stock', icon: Boxes, label: 'Stock', roles: ['manager'], section: 'manager' },
+  { path: '/stock-approvals', icon: ClipboardCheck, label: 'Approbations', roles: ['manager'], section: 'manager' },
+  { path: '/employees', icon: Users, label: 'Employes', roles: ['manager'], section: 'manager' },
+  { path: '/returns', icon: RotateCcw, label: 'Retours', roles: ['manager'], section: 'manager' },
+
+  // === SELLER — Sales only ===
+  { path: '/dashboard', icon: LayoutDashboard, label: 'Mon Espace', roles: ['seller'], section: 'seller' },
+  { path: '/pos', icon: ShoppingCart, label: 'Ventes (POS)', roles: ['seller'], section: 'seller' },
   { path: '/products', icon: Package, label: 'Produits', roles: ['seller'], section: 'seller' },
   { path: '/returns', icon: RotateCcw, label: 'Retours', roles: ['seller'], section: 'seller' },
-  { path: '/my-performance', icon: TrendingUp, label: 'Mes Performances', roles: ['seller', 'cashier'], section: 'seller' },
+  { path: '/my-performance', icon: TrendingUp, label: 'Mes Performances', roles: ['seller'], section: 'seller' },
+
+  // === CASHIER — Cash register only ===
+  { path: '/dashboard', icon: LayoutDashboard, label: 'Ma Caisse', roles: ['cashier'], section: 'cashier' },
+  { path: '/pos', icon: ShoppingCart, label: 'Caisse (POS)', roles: ['cashier'], section: 'cashier' },
+  { path: '/my-performance', icon: TrendingUp, label: 'Mes Performances', roles: ['cashier'], section: 'cashier' },
+
+  // === STOCK MANAGER — Stock management with approval requests ===
+  { path: '/dashboard', icon: LayoutDashboard, label: 'Mon Stock', roles: ['stock_manager'], section: 'stock_mgr' },
+  { path: '/stock', icon: Boxes, label: 'Stock', roles: ['stock_manager'], section: 'stock_mgr' },
+  { path: '/products', icon: Package, label: 'Produits', roles: ['stock_manager'], section: 'stock_mgr' },
 
   // === ALL ROLES — Common ===
-  { path: '/help', icon: HelpCircle, label: "Centre d'aide", roles: ['super_admin', 'owner', 'ceo', 'manager', 'seller', 'cashier'], section: 'common' },
-  { path: '/settings', icon: Settings, label: 'Parametres', roles: ['super_admin', 'owner', 'ceo', 'manager', 'seller', 'cashier'], section: 'common' },
+  { path: '/help', icon: HelpCircle, label: "Centre d'aide", roles: ['super_admin', 'owner', 'ceo', 'manager', 'seller', 'cashier', 'stock_manager'], section: 'common' },
+  { path: '/settings', icon: Settings, label: 'Parametres', roles: ['super_admin', 'owner', 'ceo', 'manager', 'seller', 'cashier', 'stock_manager'], section: 'common' },
 ];
 
 const DashboardLayout = ({ children, title }) => {
@@ -61,7 +78,10 @@ const DashboardLayout = ({ children, title }) => {
   const sectionLabels = {
     admin: 'Administration',
     owner: 'Gestion Boutique',
+    manager: 'Supervision',
     seller: 'Mon Travail',
+    cashier: 'Ma Caisse',
+    stock_mgr: 'Gestion Stock',
     common: 'General',
   };
 
@@ -171,6 +191,7 @@ const DashboardLayout = ({ children, title }) => {
                   userRole === 'ceo' ? 'bg-amber-500/20 text-amber-400' :
                   userRole === 'owner' ? 'bg-emerald-500/20 text-emerald-400' :
                   userRole === 'manager' ? 'bg-purple-500/20 text-purple-400' :
+                  userRole === 'stock_manager' ? 'bg-amber-500/20 text-amber-400' :
                   'bg-blue-500/20 text-blue-400'
                 )}>
                   {userRole === 'super_admin' ? 'Fondateur' : 
@@ -178,7 +199,8 @@ const DashboardLayout = ({ children, title }) => {
                    userRole === 'owner' ? 'Proprietaire' : 
                    userRole === 'manager' ? 'Manager' :
                    userRole === 'seller' ? 'Vendeur' :
-                   userRole === 'cashier' ? 'Caissier' : userRole}
+                   userRole === 'cashier' ? 'Caissier' :
+                   userRole === 'stock_manager' ? 'Gest. Stock' : userRole}
                 </span>
               </div>
             </div>

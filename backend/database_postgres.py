@@ -21,7 +21,7 @@ COLLECTIONS = [
     "authorized_users", "payments", "whatsapp_messages",
     "otp_codes", "incidents",
     "whitelist", "blocked_users", "access_attempts", "sessions", "audit_log",
-    "returns", "subscription_plans"
+    "returns", "subscription_plans", "stock_requests", "activity_log"
 ]
 
 

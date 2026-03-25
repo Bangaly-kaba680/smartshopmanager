@@ -40,17 +40,18 @@ from models.schemas import (
     PaymentResponse, WhatsAppReceipt, IRPCreate, IRPUpdate,
     AdminCreateUser, AdminUpdateUser, AdminUserResponse,
     SubscriptionPlanCreate, SubscriptionPlanResponse,
-    ProductReturnCreate, ProductReturnResponse
+    ProductReturnCreate, ProductReturnResponse,
+    StockRequestCreate, StockRequestResponse
 )
 from utils import (
     pwd_context, ADMIN_EMAIL, otp_storage, generate_otp, store_otp, verify_otp,
     users_col, shops_col, products_col, batches_col, sales_col, sale_items_col,
     employees_col, documents_col, accounts_col, access_requests_col,
     authorized_users_col, payments_col, whatsapp_messages_col, incidents_col,
-    returns_col, subscription_plans_col,
+    returns_col, subscription_plans_col, stock_requests_col, activity_log_col,
     serialize_doc, serialize_docs, create_access_token, verify_token,
     get_current_user, get_shop_filter, is_admin_role, generate_ai_content,
-    security, EMERGENT_API_KEY
+    security, EMERGENT_API_KEY, log_activity
 )
 
 ROOT_DIR = Path(__file__).parent
@@ -1285,13 +1286,37 @@ async def create_product(product: ProductCreate, current_user: dict = Depends(ge
     if not prod_dict.get("price"):
         prod_dict["price"] = prod_dict.get("sell_price", 0)
     
+    # Auto-generate QR code for the product
+    qr_data = f"BINTRONIX|PROD|{prod_id}|{prod_dict.get('name','')}|{prod_dict.get('sell_price',0)}"
+    qr = qrcode.QRCode(version=1, box_size=10, border=4)
+    qr.add_data(qr_data)
+    qr.make(fit=True)
+    img = qr.make_image(fill_color="black", back_color="white")
+    buffer = BytesIO()
+    img.save(buffer, format='PNG')
+    buffer.seek(0)
+    qr_base64 = base64.b64encode(buffer.getvalue()).decode()
+    
     prod_data = {
         "id": prod_id,
         "shop_id": user_shop_id,
         **prod_dict,
+        "qr_code": qr_base64,
         "created_at": datetime.now(timezone.utc).isoformat()
     }
     products_col().insert_one(prod_data)
+    
+    # Log activity
+    log_activity(
+        shop_id=user_shop_id or "",
+        user_id=current_user["id"],
+        user_name=current_user.get("name", ""),
+        user_role=current_user.get("role", ""),
+        action="product_created",
+        details=f"Produit '{prod_dict.get('name','')}' cree",
+        target_type="product",
+        target_id=prod_id
+    )
     
     return ProductResponse(**prod_data, stock_quantity=0)
 
@@ -1514,6 +1539,18 @@ async def create_sale(sale: SaleCreate, current_user: dict = Depends(get_current
     accounts_col().update_one(
         {"shop_id": user_shop_id, "type": acc_type},
         {"$inc": {"balance": total}}
+    )
+    
+    # Log activity
+    log_activity(
+        shop_id=user_shop_id or "",
+        user_id=user_id,
+        user_name=seller_name,
+        user_role=current_user.get("role", ""),
+        action="sale_created",
+        details=f"Vente de {total} GNF ({sale.payment_method})",
+        target_type="sale",
+        target_id=sale_id
     )
     
     return SaleResponse(**sale_data, items=serialize_docs(sale_items))
@@ -3093,12 +3130,382 @@ async def seller_available_products(current_user: dict = Depends(get_current_use
     return result
 
 
+# ========================
+# OWNER - EMPLOYEE MANAGEMENT (Create/Edit/Block/Delete with roles)
+# ========================
+
+ROLE_PERMISSIONS_MAP = {
+    "manager": {"can_sell": False, "can_modify_stock": True, "can_view_reports": True, "can_manage_returns": True},
+    "seller": {"can_sell": True, "can_modify_stock": False, "can_view_reports": False, "can_manage_returns": False},
+    "cashier": {"can_sell": True, "can_modify_stock": False, "can_view_reports": False, "can_manage_returns": False},
+    "stock_manager": {"can_sell": False, "can_modify_stock": True, "can_view_reports": True, "can_manage_returns": False},
+}
+
+@api_router.post("/owner/employees")
+async def owner_create_employee(data: EmployeeCreate, current_user: dict = Depends(get_current_user)):
+    """Owner: Create an employee with a specific role and user account"""
+    shop_id = current_user.get("shop_id")
+    tenant_id = current_user.get("tenant_id")
+    if not shop_id:
+        raise HTTPException(status_code=403, detail="Pas de boutique associee")
+    
+    role = data.role if data.role in ROLE_PERMISSIONS_MAP else "seller"
+    perms = ROLE_PERMISSIONS_MAP[role]
+    
+    emp_id = str(uuid.uuid4())
+    seller_user_id = None
+    
+    if data.email:
+        existing = users_col().find_one({"email": data.email})
+        if existing:
+            raise HTTPException(status_code=400, detail="Email deja utilise")
+        seller_user_id = str(uuid.uuid4())
+        users_col().insert_one({
+            "id": seller_user_id,
+            "name": data.name,
+            "email": data.email,
+            "password": pwd_context.hash("changeme123"),
+            "role": role,
+            "shop_id": shop_id,
+            "tenant_id": tenant_id,
+            "is_active": True,
+            "created_at": datetime.now(timezone.utc).isoformat()
+        })
+        # Auto-authorize for access gate
+        authorized_users_col().insert_one({
+            "id": str(uuid.uuid4()),
+            "name": data.name,
+            "email": data.email,
+            "access_type": "permanent",
+            "expires_at": None,
+            "approved_at": datetime.now(timezone.utc).isoformat()
+        })
+    
+    emp_data = {
+        "id": emp_id,
+        "shop_id": shop_id,
+        "name": data.name,
+        "email": data.email,
+        "position": data.position,
+        "role": role,
+        "salary": data.salary,
+        "contract_type": data.contract_type,
+        "phone": data.phone,
+        "user_id": seller_user_id,
+        "is_active": True,
+        **perms,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    employees_col().insert_one(emp_data)
+    
+    log_activity(shop_id, current_user["id"], current_user.get("name",""), current_user.get("role",""),
+        "employee_created", f"Employe '{data.name}' cree avec role '{role}'", "employee", emp_id)
+    
+    response = {"message": f"Employe {data.name} cree avec succes", "employee": emp_data}
+    if seller_user_id:
+        response["account_created"] = True
+        response["default_password"] = "changeme123"
+    return response
+
+@api_router.put("/owner/employees/{employee_id}")
+async def owner_update_employee(employee_id: str, data: EmployeeUpdate, current_user: dict = Depends(get_current_user)):
+    """Owner: Update an employee"""
+    shop_id = current_user.get("shop_id")
+    emp = employees_col().find_one({"id": employee_id, "shop_id": shop_id})
+    if not emp:
+        raise HTTPException(status_code=404, detail="Employe non trouve")
+    
+    update_data = {k: v for k, v in data.model_dump().items() if v is not None}
+    
+    # If role changes, update permissions and user account
+    if "role" in update_data and update_data["role"] in ROLE_PERMISSIONS_MAP:
+        new_role = update_data["role"]
+        update_data.update(ROLE_PERMISSIONS_MAP[new_role])
+        emp_doc = serialize_doc(emp)
+        if emp_doc.get("user_id"):
+            users_col().update_one({"id": emp_doc["user_id"]}, {"$set": {"role": new_role}})
+    
+    if update_data:
+        employees_col().update_one({"id": employee_id}, {"$set": update_data})
+    
+    # Also update user account if name/is_active changed
+    emp_doc = serialize_doc(employees_col().find_one({"id": employee_id}))
+    if emp_doc.get("user_id"):
+        user_update = {}
+        if "name" in update_data:
+            user_update["name"] = update_data["name"]
+        if "is_active" in update_data:
+            user_update["is_active"] = update_data["is_active"]
+        if user_update:
+            users_col().update_one({"id": emp_doc["user_id"]}, {"$set": user_update})
+    
+    log_activity(shop_id or "", current_user["id"], current_user.get("name",""), current_user.get("role",""),
+        "employee_updated", f"Employe '{emp_doc.get('name','')}' modifie", "employee", employee_id)
+    
+    updated = employees_col().find_one({"id": employee_id})
+    return {"message": "Employe mis a jour", "employee": serialize_doc(updated)}
+
+@api_router.post("/owner/employees/{employee_id}/block")
+async def owner_block_employee(employee_id: str, current_user: dict = Depends(get_current_user)):
+    """Owner: Block an employee"""
+    shop_id = current_user.get("shop_id")
+    emp = employees_col().find_one({"id": employee_id, "shop_id": shop_id})
+    if not emp:
+        raise HTTPException(status_code=404, detail="Employe non trouve")
+    emp_doc = serialize_doc(emp)
+    employees_col().update_one({"id": employee_id}, {"$set": {"is_active": False}})
+    if emp_doc.get("user_id"):
+        users_col().update_one({"id": emp_doc["user_id"]}, {"$set": {"is_active": False}})
+    
+    log_activity(shop_id or "", current_user["id"], current_user.get("name",""), current_user.get("role",""),
+        "employee_blocked", f"Employe '{emp_doc.get('name','')}' bloque", "employee", employee_id)
+    return {"message": "Employe bloque"}
+
+@api_router.post("/owner/employees/{employee_id}/activate")
+async def owner_activate_employee(employee_id: str, current_user: dict = Depends(get_current_user)):
+    """Owner: Activate an employee"""
+    shop_id = current_user.get("shop_id")
+    emp = employees_col().find_one({"id": employee_id, "shop_id": shop_id})
+    if not emp:
+        raise HTTPException(status_code=404, detail="Employe non trouve")
+    emp_doc = serialize_doc(emp)
+    employees_col().update_one({"id": employee_id}, {"$set": {"is_active": True}})
+    if emp_doc.get("user_id"):
+        users_col().update_one({"id": emp_doc["user_id"]}, {"$set": {"is_active": True}})
+    
+    log_activity(shop_id or "", current_user["id"], current_user.get("name",""), current_user.get("role",""),
+        "employee_activated", f"Employe '{emp_doc.get('name','')}' active", "employee", employee_id)
+    return {"message": "Employe active"}
+
+@api_router.delete("/owner/employees/{employee_id}")
+async def owner_delete_employee(employee_id: str, current_user: dict = Depends(get_current_user)):
+    """Owner: Delete an employee and their account"""
+    shop_id = current_user.get("shop_id")
+    emp = employees_col().find_one({"id": employee_id, "shop_id": shop_id})
+    if not emp:
+        raise HTTPException(status_code=404, detail="Employe non trouve")
+    emp_doc = serialize_doc(emp)
+    if emp_doc.get("user_id"):
+        users_col().delete_one({"id": emp_doc["user_id"]})
+    if emp_doc.get("email"):
+        authorized_users_col().delete_one({"email": emp_doc["email"]})
+    employees_col().delete_one({"id": employee_id})
+    
+    log_activity(shop_id or "", current_user["id"], current_user.get("name",""), current_user.get("role",""),
+        "employee_deleted", f"Employe '{emp_doc.get('name','')}' supprime", "employee", employee_id)
+    return {"message": "Employe supprime"}
+
+@api_router.get("/owner/employees")
+async def owner_list_employees(current_user: dict = Depends(get_current_user)):
+    """Owner: List all employees in shop with user account info"""
+    shop_id = current_user.get("shop_id")
+    if not shop_id:
+        raise HTTPException(status_code=403, detail="Pas de boutique associee")
+    emps = list(employees_col().find({"shop_id": shop_id}))
+    return serialize_docs(emps)
+
+# ========================
+# STOCK APPROVAL WORKFLOW
+# ========================
+
+@api_router.post("/stock-requests")
+async def create_stock_request(data: StockRequestCreate, current_user: dict = Depends(get_current_user)):
+    """Stock Manager: Create a stock modification request"""
+    shop_id = current_user.get("shop_id")
+    if not shop_id:
+        raise HTTPException(status_code=403, detail="Pas de boutique associee")
+    
+    product = products_col().find_one({"id": data.product_id})
+    if not product:
+        raise HTTPException(status_code=404, detail="Produit non trouve")
+    product = serialize_doc(product)
+    
+    req_id = str(uuid.uuid4())
+    req_data = {
+        "id": req_id,
+        "shop_id": shop_id,
+        "product_id": data.product_id,
+        "product_name": product.get("name", ""),
+        "batch_id": data.batch_id,
+        "action": data.action,
+        "quantity": data.quantity,
+        "reason": data.reason,
+        "status": "pending",
+        "requested_by": current_user["id"],
+        "requested_by_name": current_user.get("name", ""),
+        "approved_by": None,
+        "approved_by_name": None,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "processed_at": None
+    }
+    stock_requests_col().insert_one(req_data)
+    
+    log_activity(shop_id, current_user["id"], current_user.get("name",""), current_user.get("role",""),
+        "stock_request_created", f"Demande stock: {data.action} {data.quantity}x '{product.get('name','')}'",
+        "stock_request", req_id)
+    
+    return {"message": "Demande de modification stock creee", "request": req_data}
+
+@api_router.get("/stock-requests")
+async def list_stock_requests(status: Optional[str] = None, current_user: dict = Depends(get_current_user)):
+    """List stock requests for the shop"""
+    shop_id = current_user.get("shop_id")
+    query = {"shop_id": shop_id} if shop_id else {}
+    if status:
+        query["status"] = status
+    requests = list(stock_requests_col().find(query).sort("created_at", -1))
+    return serialize_docs(requests)
+
+@api_router.post("/stock-requests/{request_id}/approve")
+async def approve_stock_request(request_id: str, current_user: dict = Depends(get_current_user)):
+    """Manager: Approve a stock modification request"""
+    role = current_user.get("role", "")
+    if role not in ("manager", "owner", "ceo", "super_admin"):
+        raise HTTPException(status_code=403, detail="Seul le manager ou proprietaire peut approuver")
+    
+    req = stock_requests_col().find_one({"id": request_id})
+    if not req:
+        raise HTTPException(status_code=404, detail="Demande non trouvee")
+    req = serialize_doc(req)
+    
+    if req["status"] != "pending":
+        raise HTTPException(status_code=400, detail="Demande deja traitee")
+    
+    # Apply the stock modification
+    batch = batches_col().find_one({"product_id": req["product_id"]})
+    if batch:
+        batch = serialize_doc(batch)
+        current_qty = int(batch.get("quantity", 0))
+        if req["action"] == "add":
+            new_qty = current_qty + req["quantity"]
+        elif req["action"] == "remove":
+            new_qty = max(0, current_qty - req["quantity"])
+        else:  # adjust
+            new_qty = req["quantity"]
+        batches_col().update_one({"id": batch["id"]}, {"$set": {"quantity": new_qty}})
+    else:
+        # Create a batch if none exists
+        batches_col().insert_one({
+            "id": str(uuid.uuid4()),
+            "product_id": req["product_id"],
+            "lot_number": f"LOT-{datetime.now().strftime('%Y%m%d')}-{str(uuid.uuid4())[:4].upper()}",
+            "size": "",
+            "color": "",
+            "quantity": req["quantity"],
+            "created_at": datetime.now(timezone.utc).isoformat()
+        })
+    
+    stock_requests_col().update_one({"id": request_id}, {"$set": {
+        "status": "approved",
+        "approved_by": current_user["id"],
+        "approved_by_name": current_user.get("name", ""),
+        "processed_at": datetime.now(timezone.utc).isoformat()
+    }})
+    
+    log_activity(req.get("shop_id",""), current_user["id"], current_user.get("name",""), current_user.get("role",""),
+        "stock_request_approved", f"Demande stock approuvee: {req['action']} {req['quantity']}x '{req.get('product_name','')}'",
+        "stock_request", request_id)
+    
+    return {"message": "Demande approuvee et stock mis a jour"}
+
+@api_router.post("/stock-requests/{request_id}/reject")
+async def reject_stock_request(request_id: str, current_user: dict = Depends(get_current_user)):
+    """Manager: Reject a stock modification request"""
+    role = current_user.get("role", "")
+    if role not in ("manager", "owner", "ceo", "super_admin"):
+        raise HTTPException(status_code=403, detail="Seul le manager ou proprietaire peut rejeter")
+    
+    req = stock_requests_col().find_one({"id": request_id})
+    if not req:
+        raise HTTPException(status_code=404, detail="Demande non trouvee")
+    req = serialize_doc(req)
+    
+    stock_requests_col().update_one({"id": request_id}, {"$set": {
+        "status": "rejected",
+        "approved_by": current_user["id"],
+        "approved_by_name": current_user.get("name", ""),
+        "processed_at": datetime.now(timezone.utc).isoformat()
+    }})
+    
+    log_activity(req.get("shop_id",""), current_user["id"], current_user.get("name",""), current_user.get("role",""),
+        "stock_request_rejected", f"Demande stock rejetee: {req['action']} {req['quantity']}x '{req.get('product_name','')}'",
+        "stock_request", request_id)
+    
+    return {"message": "Demande rejetee"}
+
+# ========================
+# ACTIVITY LOG / AUDIT TRAIL
+# ========================
+
+@api_router.get("/owner/activity-log")
+async def owner_activity_log(limit: int = 50, current_user: dict = Depends(get_current_user)):
+    """Owner: View all activity in the shop"""
+    shop_id = current_user.get("shop_id")
+    if not shop_id and is_admin_role(current_user):
+        logs = list(activity_log_col().find().sort("created_at", -1).limit(limit))
+    else:
+        logs = list(activity_log_col().find({"shop_id": shop_id}).sort("created_at", -1).limit(limit))
+    return serialize_docs(logs)
+
+# ========================
+# PRODUCT QR CODE (printable)
+# ========================
+
+@api_router.get("/products/{product_id}/qr-print")
+async def get_product_qr_printable(product_id: str, current_user: dict = Depends(get_current_user)):
+    """Get printable QR code for a product"""
+    product = products_col().find_one({"id": product_id})
+    if not product:
+        raise HTTPException(status_code=404, detail="Produit non trouve")
+    product = serialize_doc(product)
+    
+    # Generate or re-use existing QR
+    qr_code = product.get("qr_code")
+    if not qr_code:
+        qr_data = f"BINTRONIX|PROD|{product_id}|{product.get('name','')}|{product.get('sell_price', product.get('price',0))}"
+        qr = qrcode.QRCode(version=1, box_size=10, border=4)
+        qr.add_data(qr_data)
+        qr.make(fit=True)
+        img = qr.make_image(fill_color="black", back_color="white")
+        buffer = BytesIO()
+        img.save(buffer, format='PNG')
+        buffer.seek(0)
+        qr_code = base64.b64encode(buffer.getvalue()).decode()
+        products_col().update_one({"id": product_id}, {"$set": {"qr_code": qr_code}})
+    
+    return {
+        "product_id": product_id,
+        "product_name": product.get("name", ""),
+        "sell_price": product.get("sell_price", product.get("price", 0)),
+        "category": product.get("category", ""),
+        "qr_code": qr_code
+    }
+
+@api_router.get("/products/{product_id}/qr-scan")
+async def scan_product_qr(product_id: str):
+    """Scan QR: Returns product info (public endpoint for scanning)"""
+    product = products_col().find_one({"id": product_id})
+    if not product:
+        raise HTTPException(status_code=404, detail="Produit non trouve")
+    product = serialize_doc(product)
+    stock = sum(int(serialize_doc(b).get("quantity", 0)) for b in batches_col().find({"product_id": product_id}))
+    return {
+        "product_id": product_id,
+        "name": product.get("name", ""),
+        "category": product.get("category", ""),
+        "sell_price": product.get("sell_price", product.get("price", 0)),
+        "buy_price": product.get("buy_price", 0),
+        "stock_quantity": stock,
+        "shop_id": product.get("shop_id", "")
+    }
+
+
 # ROOT ENDPOINT
 # ========================
 
 @api_router.get("/")
 async def root():
-    return {"message": "StartupManager Pro API", "version": "3.0.0", "database": "PostgreSQL"}
+    return {"message": "StartupManager Pro API", "version": "4.0.0", "database": "PostgreSQL"}
 
 # Include the router in the main app
 app.include_router(api_router)

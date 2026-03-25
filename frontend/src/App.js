@@ -33,6 +33,7 @@ import AdminShopsPage from "@/pages/AdminShopsPage";
 import SubscriptionsPage from "@/pages/SubscriptionsPage";
 import ReturnsPage from "@/pages/ReturnsPage";
 import SellerPerformancePage from "@/pages/SellerPerformancePage";
+import StockApprovalsPage from "@/pages/StockApprovalsPage";
 
 // Super Admin email - creator of the startup (TOTAL CONTROL)
 const SUPER_ADMIN_EMAIL = "bangalykaba635@gmail.com";
@@ -344,6 +345,9 @@ function App() {
                   
                   {/* Seller Performance */}
                   <Route path="/my-performance" element={<ProtectedRoute><SellerPerformancePage /></ProtectedRoute>} />
+                  
+                  {/* Stock Approvals */}
+                  <Route path="/stock-approvals" element={<ProtectedRoute><StockApprovalsPage /></ProtectedRoute>} />
                   
                   {/* Brand Assets - BINTRONIX */}
                   <Route path="/brand-assets" element={<ProtectedRoute requireCEO><BrandAssetsPage /></ProtectedRoute>} />

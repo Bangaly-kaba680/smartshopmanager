@@ -85,6 +85,31 @@ def returns_col():
 def subscription_plans_col():
     return get_collection("subscription_plans")
 
+def stock_requests_col():
+    return get_collection("stock_requests")
+
+def activity_log_col():
+    return get_collection("activity_log")
+
+
+# ========================
+# AUDIT / ACTIVITY LOG
+# ========================
+def log_activity(shop_id: str, user_id: str, user_name: str, user_role: str, action: str, details: str = "", target_type: str = "", target_id: str = ""):
+    """Log an activity for audit trail visible to owner"""
+    activity_log_col().insert_one({
+        "id": str(uuid.uuid4()),
+        "shop_id": shop_id,
+        "user_id": user_id,
+        "user_name": user_name,
+        "user_role": user_role,
+        "action": action,
+        "details": details,
+        "target_type": target_type,
+        "target_id": target_id,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    })
+
 
 # ========================
 # SERIALIZATION
