@@ -47,10 +47,22 @@ def get_connection():
         _conn = None
     
     db_url = _get_database_url()
-    _conn = psycopg2.connect(db_url)
-    _conn.autocommit = True
-    psycopg2.extras.register_default_jsonb(conn_or_curs=_conn, loads=json.loads)
-    return _conn
+    
+    # Retry connection up to 5 times with delay (handles PostgreSQL cold starts)
+    import time
+    last_err = None
+    for attempt in range(5):
+        try:
+            _conn = psycopg2.connect(db_url)
+            _conn.autocommit = True
+            psycopg2.extras.register_default_jsonb(conn_or_curs=_conn, loads=json.loads)
+            return _conn
+        except psycopg2.OperationalError as e:
+            last_err = e
+            logger.warning(f"PostgreSQL connection attempt {attempt+1}/5 failed, retrying in 3s...")
+            time.sleep(3)
+    
+    raise last_err
 
 
 def init_tables():
